@@ -148,8 +148,14 @@ def backwardPass(network, data):
           elif f == id:
             cov_a_z[n] = 1
           if f == tanh:
-            None # TODO
-
+            cov_a_z[n] = 2 * ((l * 2*2*s_a_minus[n][n]) / t) * (1 / math.sqrt(2 * math.pi)) * math.exp(-((l * 2 * m_a_minus[n].item() / t)**2) / 2) - 2 * m_a_minus[n] - sig(2 * m_a_minus[n] / t) * m_a_minus[n]
+            
+            # s_ya 	= E{a*tanh(a)} - m_y*m_a
+	          # = E{a*2*s(2*a)-a} - m_y*m_a
+	          # = 2*E{a*s(2*a)} - m_a - [2*s(2*m_a/t)-1]*m_a
+	          # = 2[E{a*s(2*a)} - s(2*m_a/t)*m_a] - 2*m_a - s(2*m_a/t)*m_a
+	          # = 2*s_y2a(sigmoid) - 2*m_a - s(2*m_a/t)*m_a
+        
         print((i, j))
         k_n = torch.matmul(torch.inverse(s_z_minus), cov_a_z).unsqueeze(0).mT
         m_a_plus[j] = m_a_minus[j] + torch.matmul(k_n.mT, (m_z_plus - m_z_minus)).squeeze(0)
