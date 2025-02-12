@@ -1,8 +1,0 @@
-ForwardPass(Data, Network):
-	For each layer:
-		For each Perceptron:
-			m_a = m_w^T*m_z^(l-1)
-			s_a = m_w^T * C_z* m_w + m_z^T * C_w* m_z + Tr(C_w * C_z)
-			m_z^(l) = E(f(a))
-			s_z = E(f(a)^2) - m_z^(l)^2
-
