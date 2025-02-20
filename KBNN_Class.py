@@ -119,12 +119,16 @@ class Network_Class:
       s_z_plus = torch.zeros(y.size(0), dtype=torch.float64)
       # iterate through each layer
       for i in range(len(dimensions)-1, -1, -1):
+        print(i)
         perc_count = dimensions[i]
-          
+        
+
         if i == 0:
           m_z_minus_prev = x
           s_z_minus_prev = torch.zeros(x.size(0), dtype=torch.float64)
+          pre_perc_count = self.input_size
         else:
+          pre_perc_count = dimensions[i-1]
           m_z_minus_prev = torch.cat((torch.tensor([1], dtype=torch.float64), forwardPassData[i-1][2]), 0)
           s_z_minus_prev = torch.cat((torch.tensor([0], dtype=torch.float64), forwardPassData[i-1][3]), 0)
 
@@ -144,49 +148,45 @@ class Network_Class:
           cov_a_z = s_a_minus
 
         k_n = 0.9 * (torch.pow(s_z_minus, -1) * cov_a_z)
-        m_a_plus = m_a_minus + k_n * (m_z_plus - m_z_minus)
+        
+        m_a_plus = m_a_minus + torch.matmul(k_n, (m_z_plus - m_z_minus))
         s_a_plus = torch.maximum(s_a_minus + torch.matmul(torch.matmul(k_n, (s_z_plus - torch.diag(s_z_minus))), k_n) + torch.ones(s_a_minus.size(0)) * 10**(-6), torch.ones(s_a_minus.size(0)) * 10**(-6))
         
-        C_wza_top = torch.matmul(s_w, m_z_minus_prev)
-        C_wza_bot = torch.matmul(s_z_minus_prev, m_w)
-        print(s_w)
-        print(m_z_minus_prev)
-        print(C_wza_top)
-        """
-        if j==0:
-          C_wza_top = torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)
-          C_wza_bot = torch.matmul(s_z_minus_prev, m_w)          
-          m_w_big = m_w
-          s_w_big = s_w
-        else:
-          C_wza_top = torch.block_diag(C_wza_top, torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT))
-          C_wza_bot = torch.cat((C_wza_bot, torch.matmul(s_z_minus_prev, m_w.unsqueeze(0).mT)),1)
-          m_w_big = torch.cat((m_w_big, m_w), 0)
-          s_w_big = torch.block_diag(s_w_big, s_w)
-        """ 
+        C_wza_top = torch.block_diag(*[torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)[i] for i in range(0, perc_count)])
+        
+        C_wza_bot = (s_z_minus_prev * torch.transpose(m_w, 1, 2)).squeeze(1).mT
         C_wza = torch.cat((C_wza_top, C_wza_bot), 0)
-        L = torch.matmul(C_wza, torch.inverse(s_a_minus))
+        
 
-        m_big = torch.cat((m_w_big, m_z_minus_prev), 0) + torch.matmul(L, (m_a_plus - m_a_minus))
-        c_big = torch.block_diag(s_w_big, s_z_minus_prev) + torch.matmul(torch.matmul(L, torch.diag(s_a_plus - s_a_minus)), L.mT)
 
-        m_w_plus, m_z_plus = torch.split(m_big, [len(m_w) * perc_count, len(m_big) - len(m_w) * perc_count])
+        L = C_wza * torch.pow(s_a_minus, -1).unsqueeze(0)
+
+        print("L: ", L)
+        
+        m_w_big = m_w.flatten().unsqueeze(0).mT
+        s_w_big = torch.block_diag(*[s_w[i] for i in range(0, perc_count)])
+
+        m_big = torch.cat((m_w_big, m_z_minus_prev.unsqueeze(0).mT), 0) + torch.matmul(L, (m_a_plus - m_a_minus).unsqueeze(0).mT)
+        c_big = torch.block_diag(s_w_big, torch.diag(s_z_minus_prev)) + torch.matmul(torch.matmul(L, torch.diag(s_a_plus - s_a_minus)), L.mT)
+
+
+        m_w_plus, m_z_plus = torch.split(m_big, [m_w.size(1) * perc_count, len(m_big) - m_w.size(1) * perc_count])
         m_z_plus = torch.split(m_z_plus, [1, len(m_z_plus)-1])[1]
-        c_w_plus = torch.split(torch.split(c_big, [len(m_w) * perc_count, len(c_big) - len(m_w) * perc_count])[0], [len(m_w) * perc_count, len(c_big) - len(m_w) * perc_count], 1)[0]
-        s_z_plus = torch.split(torch.split(c_big, [len(m_w) * perc_count, len(c_big) - len(m_w) * perc_count])[1], [len(m_w) * perc_count, len(c_big) - len(m_w) * perc_count], 1)[1]
+        c_w_plus = torch.split(torch.split(c_big, [m_w.size(1) * perc_count, len(c_big) - m_w.size(1) * perc_count])[0], [m_w.size(1) * perc_count, len(c_big) - m_w.size(1) * perc_count], 1)[0]
+        s_z_plus = torch.split(torch.split(c_big, [m_w.size(1) * perc_count, len(c_big) - m_w.size(1) * perc_count])[1], [m_w.size(1) * perc_count, len(c_big) - m_w.size(1) * perc_count], 1)[1]
         s_z_plus = torch.split(torch.split(s_z_plus, [1, s_z_plus.size(0)-1])[1], [1, s_z_plus.size(0)-1], 1)[1]
       
 
-    for j in range(0, perc_count):
-      network[i][j][0], m_w_plus = torch.split(m_w_plus, [len(m_w), len(m_w_plus) - len(m_w)])
-      network[i][j][1] = torch.split(torch.split(c_w_plus, [len(m_w), c_w_plus.size(0) - len(m_w)])[0], [len(m_w), c_w_plus.size(0) - len(m_w)], 1)[0] # + 10**(-6) * torch.eye(len(m_w), dtype=torch.float64)
-      c_w_plus = torch.split(torch.split(c_w_plus, [c_w_plus.size(0)-network[i][j][1].size(0), network[i][j][1].size(0)])[1], [c_w_plus.size(0)-network[i][j][1].size(0), network[i][j][1].size(0)], 1)[1]
+        for j in range(0, perc_count):
+          network[i][0][j], m_w_plus = torch.split(m_w_plus, [len(m_w), len(m_w_plus) - len(m_w)])
+          network[i][1][j] = torch.split(torch.split(c_w_plus, [len(m_w), c_w_plus.size(0) - len(m_w)])[0], [len(m_w), c_w_plus.size(0) - len(m_w)], 1)[0] # + 10**(-6) * torch.eye(len(m_w), dtype=torch.float64)
+          c_w_plus = torch.split(torch.split(c_w_plus, [c_w_plus.size(0)-network[i][1][j].size(0), network[i][1][j].size(0)])[1], [c_w_plus.size(0)-network[i][1][j].size(0), network[i][1][j].size(0)], 1)[1]
 
 
 torch.manual_seed(10)
 data = generateData(f2, -5, 5, 1000)
 network = Network_Class(1, [5, 1], [sig, id])
-print("network: ", network)
+print("network: ", network.network)
 plt.plot(data[0], data[1], label = "f")
 
 for k in range(1, 11):
