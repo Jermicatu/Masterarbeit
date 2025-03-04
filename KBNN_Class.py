@@ -69,28 +69,15 @@ class Network_Class:
     """
     network = self.network
     dimensions = self.dimensions
-    input_size = self.input_size
 
     if len(x.size()) == 0:
       x = x.unsqueeze(0)
     x = x.to(torch.float64)
 
-    # iterate through each layer first layer
-    x = torch.cat((torch.ones(1), x), 0)
-    x = x.repeat(dimensions[0], 1, 1)
-    x = torch.bmm(x, network[0][0])
-    x = torch.flatten(x)
-    f = network[0][2]
-    x = f(x)
-      
-    # all other layers
-    for i in range(1, len(dimensions)):
-      x = torch.cat((torch.ones(1), x), 0)
-      x = x.repeat(dimensions[i], 1, 1)
-      x = torch.bmm(x, network[i][0])
-      x = torch.flatten(x)
+    # iterate through each layer 
+    for i in range(0, len(dimensions)):
       f = network[i][2]
-      x = f(x)
+      x = f(torch.flatten(torch.matmul(torch.cat((torch.ones(1), x), 0), network[i][0])))
     return x
     
 
@@ -107,24 +94,11 @@ class Network_Class:
       x = x.unsqueeze(0)
     x = x.to(torch.float64)
 
-    # iterate through each layer first layer
-    x = torch.cat((torch.ones(1), x), 0)
-    x = x.repeat(dimensions[0], 1, 1)
-    w_core = torch.normal(0, 1, size=(dimensions[0], input_size+1, 1), dtype=torch.float64)
-    x = torch.bmm(x, torch.bmm(network[0][1], w_core) + network[0][0])
-    x = torch.flatten(x)
-    f = network[0][2]
-    x = f(x)
-    
-    # all other layers
-    for i in range(1, len(dimensions)):
-      x = torch.cat((torch.ones(1), x), 0)
-      x = x.repeat(dimensions[i], 1, 1)
-      w_core = torch.normal(0, 1, size=(dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64)
-      x = torch.bmm(x, torch.bmm(network[i][1], w_core) + network[i][0])
-      x = torch.flatten(x)
+    # iterate through each layer
+    for i in range(0, len(dimensions)):
       f = network[i][2]
-      x = f(x)
+      w_core = torch.normal(0, 1, size=(dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64)
+      x = f(torch.flatten(torch.matmul(torch.cat((torch.ones(1), x), 0), torch.bmm(network[i][1], w_core) + network[i][0])))
     return x
   
   def forwardPass(self, x):
@@ -176,7 +150,7 @@ class Network_Class:
     dimensions = self.dimensions
     
     # iterate through each data point
-    for k in range(0, len(x_data)):
+    for k in range(len(x_data)-1, 0-1, -1):
       x = x_data[k].unsqueeze(0)
       y = y_data[k].unsqueeze(0)
       x = torch.cat((torch.ones(1, dtype=torch.float64), x), 0)
@@ -213,7 +187,8 @@ class Network_Class:
           cov_a_z = s_z_minus + torch.pow(m_z_minus, 2) - m_a_minus * m_z_minus
         
         # (0.45 * (len(x_data) - k)/len(x_data) + 0.1)
-        K = 0.9 * torch.cat([torch.pow(s_z_minus, -1).unsqueeze(0)*cov_a_z[i] for i in range(0, cov_a_z.size(0))])
+        # 0.9
+        K = 0.5 * torch.cat([torch.pow(s_z_minus, -1).unsqueeze(0)*cov_a_z[i] for i in range(0, cov_a_z.size(0))])
         
         m_a_plus = m_a_minus + torch.matmul(K, (m_z_plus.flatten() - m_z_minus))
         s_a_plus = torch.maximum(s_a_minus + torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT) + torch.ones(s_a_minus.size(0)) * 10**(-6), torch.ones(s_a_minus.size(0)) * 10**(-6))
@@ -247,16 +222,29 @@ class Network_Class:
 # Calculate the start time
 start = time.time()
 
-torch.manual_seed(10)
-data = generateData(f4, -1, 1, 1000)
-network = Network_Class(1, [1, 4, 1], [id, sig, id])
+torch.manual_seed(11)
+data = generateData(f3, -3, 3, 1000)
+network = Network_Class(1, [2, 1], [sig, id])
+#network.network = [[torch.tensor([[[1],
+#         [-2]],
+#
+#        [[1],
+#         [2]]], dtype=torch.float64), torch.tensor([[[1., 0.],
+#         [0., 1.]],
+#
+#        [[1., 0.],
+#         [0., 1.]]], dtype=torch.float64), sig], [torch.tensor([[[-5],
+#         [4],
+#         [4]]], dtype=torch.float64), torch.tensor([[[1., 0., 0.],
+#         [0., 1., 0.],
+#         [0., 0., 1.]]], dtype=torch.float64), id]]
+print(network.network)
 plt.plot(data[0], data[1], label = "f")
 
-n_plots = 6
+n_plots = 10
 color = iter(plt.cm.rainbow(np.linspace(0, 1, n_plots)))
 
 for k in range(0, n_plots):
-  network.train(data)
   perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
   perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
   mse = 0
@@ -268,8 +256,9 @@ for k in range(0, n_plots):
   mse = mse/data[0].size(0)
   print("mse: ", mse)
   c = next(color)
-  plt.plot(data[0], perceptron_Plot, label='approx Nr. {k}'.format(k=k+1), color=c)
+  plt.plot(data[0], perceptron_Plot, label='epoch Nr. {k}'.format(k=k), color=c)
   plt.fill_between(data[0], perceptron_Plot-perceptron_Plot_var, perceptron_Plot + perceptron_Plot_var, alpha=0.2, color=c)
+  network.train(data)
 
 # Calculate the end time and time taken
 end = time.time()
@@ -278,7 +267,7 @@ length = end - start
 # Show the results : this can be altered however you like
 print("It took", length, "seconds!")
 
-# print("network: ", network.network)
+print("network: ", network.network)
 plt.legend(loc='best')
 plt.ylim(-1.5, 1.5)
 plt.show()
