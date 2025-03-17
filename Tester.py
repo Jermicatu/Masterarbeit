@@ -1,3 +1,13 @@
+#import torch
+#import numpy as np
+#import math
+#import matplotlib.pyplot as plt
+
+#from torch import tanh as tanh
+#from torch import cos as cos
+#from torch import sigmoid as sig
+#from torch import relu as relu
+
 import torch
 import math
 import matplotlib.pyplot as plt
@@ -53,10 +63,10 @@ class Network_Class:
     # +1 for the bias
     #  - 0.5*torch.ones(dimensions[0], input_size+1, 1, dtype=torch.float64)
 
-    network[0] = [torch.normal(0, 1, size = (dimensions[0], input_size+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
+    network[0] = [torch.normal(0, 1, size = (dimensions[0], input_size, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size, dtype=torch.float64)), functions[0]]
 
     for i in range(1,len(dimensions)):
-      network[i] = [torch.normal(0, 1, size = (dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
+      network[i] = [torch.normal(0, 1, size = (dimensions[i], dimensions[i-1], 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1], dtype=torch.float64)), functions[i]]
       
 
     self.input_size = input_size
@@ -79,7 +89,7 @@ class Network_Class:
     # iterate through each layer 
     for i in range(0, len(dimensions)):
       f = network[i][2]
-      x = f(torch.flatten(torch.matmul(torch.cat((torch.ones(1), x), 0), network[i][0])))
+      x = f(torch.flatten(torch.matmul(x, network[i][0])))
     return x
     
 
@@ -99,8 +109,8 @@ class Network_Class:
     # iterate through each layer
     for i in range(0, len(dimensions)):
       f = network[i][2]
-      w_core = torch.normal(0, 1, size=(dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64)
-      x = f(torch.flatten(torch.matmul(torch.cat((torch.ones(1), x), 0), torch.bmm(network[i][1], w_core) + network[i][0])))
+      w_core = torch.normal(0, 1, size=(dimensions[i], dimensions[i-1], 1), dtype=torch.float64)
+      x = f(torch.flatten(torch.matmul(x, torch.bmm(network[i][1], w_core) + network[i][0])))
     return x
   
   def forwardPass(self, x):
@@ -114,7 +124,7 @@ class Network_Class:
     forwardPassData = [None] * len(dimensions)
 
     m_z_old = x
-    s_z_old = torch.zeros(input_size+1, input_size+1, dtype=torch.float64)
+    s_z_old = torch.zeros(input_size, input_size, dtype=torch.float64)
     # s_z_old = torch.eye(input_size+1, input_size+1, dtype=torch.float64) * 1e-3
 
     # iterate through each layer
@@ -122,15 +132,13 @@ class Network_Class:
       m_w, s_w, f = network[i]
 
       m_a = torch.flatten(torch.matmul(m_z_old, m_w))
-      print(torch.transpose(m_w, 1, 2).size())
-      print(torch.matmul(s_z_old, m_w).size())
       s_a = torch.flatten(torch.matmul(torch.transpose(m_w, 1, 2), torch.matmul(s_z_old, m_w))) + torch.matmul(m_z_old, torch.matmul(s_w, m_z_old).mT) + torch.vmap(torch.trace)(torch.matmul(s_w, s_z_old))
       if f == sig:
         l = math.sqrt(math.pi/8)
         t = torch.sqrt(1 + (l**2) * s_a).pow_(-1)
         m_z_new = sig(m_a * t)
-        s_z_new = m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t)
-        # s_z_new = torch.maximum(m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t) + torch.ones(dimensions[i]) * 10**(-6), torch.ones(dimensions[i], dtype=torch.float64) * 10**(-6))
+        # s_z_new = m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t)
+        s_z_new = torch.maximum(m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t) + torch.ones(dimensions[i]) * 10**(-6), torch.ones(dimensions[i], dtype=torch.float64) * 10**(-6))
       if f == id:
         m_z_new = m_a
         s_z_new = s_a
@@ -140,8 +148,8 @@ class Network_Class:
         m_z_new = m_a * probit + p_a
         s_z_new = torch.maximum((torch.pow(m_a, 2) + torch.pow(s_a, 2)) * probit + m_a * p_a - torch.pow(m_z_new, 2) + torch.ones(dimensions[i]) * 10**(-6), torch.ones(dimensions[i], dtype=torch.float64) * 10**(-6))
 
-      m_z_old = torch.cat((torch.tensor([1], dtype=torch.float64), m_z_new), 0)
-      s_z_old = torch.block_diag(torch.tensor([[0]], dtype=torch.float64), torch.diag(s_z_new)) # variance of bias is zero
+      m_z_old = m_z_new
+      s_z_old = torch.diag(s_z_new)
 
       forwardPassData[i] = [m_a, s_a, m_z_new, s_z_new]
 
@@ -161,13 +169,12 @@ class Network_Class:
     #for k in range(len(x_data)-1, -1, -1):
       x = x_data[k].unsqueeze(0)
       y = y_data[k].unsqueeze(0)
-      x = torch.cat((torch.ones(1, dtype=torch.float64), x), 0)
       # forward pass
       forwardPassData = self.forwardPass(x)
 
       m_z_plus = y
       s_z_plus = torch.zeros(y.size(0), y.size(0), dtype=torch.float64)
-      #s_z_plus = torch.ones(y.size(0), dtype=torch.float64) * 1e-3
+      #s_z_plus = torch.eye(y.size(0), dtype=torch.float64) * 1e-2
 
       # iterate through each layer
       for i in range(len(dimensions)-1, -1, -1):
@@ -178,13 +185,11 @@ class Network_Class:
           m_z_minus_prev = x
           s_z_minus_prev = torch.ones(x.size(0), dtype=torch.float64) * 1e-6
           s_z_minus_prev = torch.zeros(x.size(0), dtype=torch.float64)
-          w_count = self.input_size + 1
+          w_count = self.input_size
         else:
-          m_z_minus_prev = torch.cat((torch.tensor([1], dtype=torch.float64), forwardPassData[i-1][2]), 0)
-          s_z_minus_prev = torch.cat((torch.tensor([0], dtype=torch.float64), forwardPassData[i-1][3]), 0)
-          #m_z_minus_prev = forwardPassData[i-1][2]
-          #s_z_minus_prev = forwardPassData[i-1][3]
-          w_count = dimensions[i-1] + 1
+          m_z_minus_prev = forwardPassData[i-1][2]
+          s_z_minus_prev = forwardPassData[i-1][3]
+          w_count = dimensions[i-1]
 
         m_a_minus, s_a_minus, m_z_minus, s_z_minus = forwardPassData[i]
 
@@ -202,15 +207,11 @@ class Network_Class:
         # (0.45 * (len(x_data) - k)/len(x_data) + 0.1)
         # 0.9
         K = torch.cat([torch.pow(s_z_minus, -1).unsqueeze(0)*cov_a_z[i] for i in range(0, cov_a_z.size(0))])
-        #print("K: ", K)
 
         
         m_a_plus = m_a_minus + torch.matmul(K, (m_z_plus.flatten() - m_z_minus))
-        print("negativer Teil: ", torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT))
         # s_a_plus = s_a_minus + torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT) 
         s_a_plus = torch.maximum(s_a_minus + torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT) + torch.ones(s_a_minus.size(0)) * 10**(-6), torch.ones(s_a_minus.size(0)) * 10**(-6))
-        #print("s_a_plus: ", s_a_plus)
-        #print(f"Layer {i}: Before update: {s_a_minus.mean().item()}, After update: {s_a_plus.mean().item()}")
 
         C_wza_top = torch.block_diag(*[torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)[i] for i in range(0, perc_count)])
         C_wza_bot = (s_z_minus_prev * torch.transpose(m_w, 1, 2)).squeeze(1).mT
@@ -223,16 +224,10 @@ class Network_Class:
 
         m_big = torch.cat((m_w_big, m_z_minus_prev.unsqueeze(0).mT), 0) + torch.matmul(L, (m_a_plus - m_a_minus).unsqueeze(0).mT)
         c_big = torch.block_diag(s_w_big, torch.diag(s_z_minus_prev)) + torch.matmul(torch.matmul(L, torch.diag(s_a_plus - s_a_minus)), L.mT)
-        print(torch.block_diag(s_w_big, torch.diag(s_z_minus_prev)).size())
-        print(torch.matmul(torch.matmul(L, torch.diag(s_a_plus - s_a_minus)), L.mT).size())
-        print(c_big)
-        print(c_big.mT[21])
 
         m_w_plus, m_z_plus = torch.split(m_big, [w_count * perc_count, len(m_big) - w_count * perc_count])
-        m_z_plus = torch.split(m_z_plus, [1, len(m_z_plus)-1])[1]
         c_w_plus = torch.split(torch.split(c_big, [w_count * perc_count, len(c_big) - w_count * perc_count])[0], [w_count * perc_count, len(c_big) - w_count * perc_count], 1)[0]
         s_z_plus = torch.split(torch.split(c_big, [w_count * perc_count, len(c_big) - w_count * perc_count])[1], [w_count * perc_count, len(c_big) - w_count * perc_count], 1)[1]
-        s_z_plus = torch.split(torch.split(s_z_plus, [1, s_z_plus.size(0)-1])[1], [1, s_z_plus.size(0)-1], 1)[1]
       
 
         for j in range(0, perc_count):
@@ -244,31 +239,34 @@ class Network_Class:
 # Calculate the start time
 start = time.time()
 
-torch.manual_seed(91)
-data = generateData(f4, -1, 1, 1000)
-network = Network_Class(1, [10, 1], [sig, id])
+torch.manual_seed(111111)
+data = generateData(f4, -1, 1, 100)
+network = Network_Class(1, [10, 1], [relu, id])
+
+print(network.network)
 
 #print(network.network)
 plt.plot(data[0], data[1], '.', label = "f")
 
 n_plots = 2
-color = iter(plt.cm.rainbow(np.linspace(0, 1, n_plots)))
+color = iter(plt.cm.rainbow(np.linspace(0, 1, 100)))
 
-for k in range(0, n_plots):
+for k in range(0, 100):
+  network.train([torch.tensor([data[0][k]]), torch.tensor([data[1][k]])])
   perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
   perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
   mse = 0
   # print("network ", k, " : ", network)
   for i in range(0, data[0].size(0)):
     perceptron_Plot[i] = network.meanOutput(data[0][i])
-    perceptron_Plot_var[i] = 2 * network.forwardPass(torch.cat((torch.ones(1), data[0][i].unsqueeze(0)), 0))[len(network.dimensions)-1][3]
+    perceptron_Plot_var[i] = network.forwardPass(data[0][i].unsqueeze(0))[len(network.dimensions)-1][3]
     mse += (data[1][i] - perceptron_Plot[i])**2
   mse = mse/data[0].size(0)
   print("mse Nr. ", k, " : ", mse)
   c = next(color)
   plt.plot(data[0], perceptron_Plot, label='epoch Nr. {k}'.format(k=k), color=c)
   plt.fill_between(data[0], perceptron_Plot-perceptron_Plot_var, perceptron_Plot + perceptron_Plot_var, alpha=0.2, color=c)
-  network.train(data)
+  
 
 # Calculate the end time and time taken
 end = time.time()
@@ -277,7 +275,7 @@ length = end - start
 # Show the results : this can be altered however you like
 print("It took", length, "seconds!")
 
-#print("network: ", network.network)
+print("network: ", network.network)
 
 # plt.legend(loc='best')
 plt.ylim(-1.5, 1.5)
