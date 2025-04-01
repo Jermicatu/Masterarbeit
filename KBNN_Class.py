@@ -54,10 +54,10 @@ class Network_Class:
 
     # +1 for the bias
 
-    network[0] = [torch.normal(0, 1, size = (dimensions[0], input_size+1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
+    network[0] = [torch.normal(0, 1, size = (dimensions[0], input_size+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
 
     for i in range(1,len(dimensions)):
-      network[i] = [torch.normal(0, 1, size = (dimensions[i], dimensions[i-1]+1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
+      network[i] = [torch.normal(0, 1, size = (dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
       
 
     self.input_size = input_size
