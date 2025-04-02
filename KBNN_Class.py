@@ -54,10 +54,10 @@ class Network_Class:
 
     # +1 for the bias
 
-    network[0] = [torch.normal(0, 1, size = (dimensions[0], input_size+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
+    network[0] = [torch.normal(0, 1, size = (input_size+1, dimensions[0]), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
 
     for i in range(1,len(dimensions)):
-      network[i] = [torch.normal(0, 1, size = (dimensions[i], dimensions[i-1]+1, 1), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
+      network[i] = [torch.normal(0, 1, size = (dimensions[i-1]+1, dimensions[i]), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
       
 
     self.input_size = input_size
@@ -100,7 +100,7 @@ class Network_Class:
     for i in range(0, len(dimensions)):
       f = network[i][2]
 
-      m = torch.distributions.multivariate_normal.MultivariateNormal(network[i][0].squeeze(-1), network[i][1])
+      m = torch.distributions.multivariate_normal.MultivariateNormal(network[i][0].mT, network[i][1])
       x = f(torch.matmul(torch.cat((torch.ones(1), x), 0), m.sample().mT))
 
     return x
@@ -123,7 +123,7 @@ class Network_Class:
       m_w, s_w, f = network[i]
 
       m_a = torch.flatten(torch.matmul(m_z_old, m_w))
-      s_a = torch.flatten(torch.matmul(torch.transpose(m_w, 1, 2), torch.matmul(s_z_old, m_w))) + torch.matmul(m_z_old, torch.matmul(s_w, m_z_old).mT) + torch.vmap(torch.trace)(torch.matmul(s_w, s_z_old))
+      s_a = torch.diagonal(torch.matmul(m_w.mT, torch.matmul(s_z_old, m_w))) + torch.matmul(m_z_old, torch.matmul(s_w, m_z_old).mT) + torch.vmap(torch.trace)(torch.matmul(s_w, s_z_old))
 
       if f == sig:
         l = math.sqrt(math.pi/8)
@@ -204,16 +204,14 @@ class Network_Class:
 
         # generate C_wza by doing the top and bottom half seperately
         C_wza_top = torch.block_diag(*[torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)[i] for i in range(0, perc_count)])
-        C_wza_bot = (s_z_minus_prev * torch.transpose(m_w, 1, 2)).squeeze(1).mT
+        C_wza_bot = s_z_minus_prev.unsqueeze(-1) * m_w
         C_wza = torch.cat((C_wza_top, C_wza_bot), 0)
         
         L = C_wza  * torch.pow(s_a_minus, -1) 
         
-
         m_w_big = m_w.flatten().unsqueeze(0).mT
         s_w_big = torch.block_diag(*[s_w[i] for i in range(0, perc_count)])
 
-        # These are the calculations using L 
         m_big = torch.cat((m_w_big, m_z_minus_prev.unsqueeze(0).mT), 0) + torch.matmul(L, (m_a_plus - m_a_minus).unsqueeze(0).mT)
         c_big = torch.block_diag(s_w_big, torch.diag(s_z_minus_prev)) + torch.matmul(torch.matmul(L, torch.diag(s_a_plus - s_a_minus)), L.mT)
 
@@ -224,15 +222,16 @@ class Network_Class:
         s_z_plus = torch.split(torch.split(c_big, [w_count * perc_count, len(c_big) - w_count * perc_count])[1], [w_count * perc_count, len(c_big) - w_count * perc_count], 1)[1]
         s_z_plus = torch.split(torch.split(s_z_plus, [1, s_z_plus.size(0)-1])[1], [1, s_z_plus.size(0)-1], 1)[1]
 
+        m_w_plus = m_w_plus.flatten()
         # Here we break up the weight part for the batch and update the network
         for j in range(0, perc_count):
-          network[i][0][j], m_w_plus = torch.split(m_w_plus, [w_count, m_w_plus.size(0) - w_count])
+          network[i][0][:, j], m_w_plus = torch.split(m_w_plus, [w_count, m_w_plus.size(0) - w_count])
           network[i][1][j] = torch.split(torch.split(c_w_plus, [w_count, c_w_plus.size(0) - w_count])[0], [w_count, c_w_plus.size(0) - w_count], 1)[0] # + 10**(-6) * torch.eye(len(m_w), dtype=torch.float64)
           c_w_plus = torch.split(torch.split(c_w_plus, [c_w_plus.size(0)-network[i][1][j].size(0), network[i][1][j].size(0)])[1], [c_w_plus.size(0)-network[i][1][j].size(0), network[i][1][j].size(0)], 1)[1]
           
           # CHecks the size for errors
-          assert network[i][0][j].shape == torch.Size([w_count, 1]), f"Shape mismatch in weights at layer {i}, neuron {j}"
-          assert network[i][1][j].shape == torch.Size([w_count, w_count]), f"Shape mismatch in covariance at layer {i}, neuron {j}"
+          #assert network[i][0][j].shape == torch.Size([w_count, 1]), f"Shape mismatch in weights at layer {i}, neuron {j}"
+          #assert network[i][1][j].shape == torch.Size([w_count, w_count]), f"Shape mismatch in covariance at layer {i}, neuron {j}"
 
     self.network = network
 
@@ -321,11 +320,10 @@ def testNetwork(network, data):
 
 
 
-torch.manual_seed(111)
+# torch.manual_seed(111)
 data = generateData(f4, -4, 4, 800)
-network = Network_Class(1, [10, 1], [relu, id])
-
+network = Network_Class(1, [1, 1], [relu, id])
 #network.train(data)
-#sample(network, data, 100000, 400)
+#sample(network, data, 100000, 700)
 
 testNetwork(network, data)
