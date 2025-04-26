@@ -123,6 +123,7 @@ class Network_Class:
 
       m_a = torch.flatten(torch.matmul(m_z_old, m_w))
       s_a = torch.diagonal(torch.matmul(m_w.mT, torch.matmul(s_z_old, m_w))) + torch.matmul(m_z_old, torch.matmul(s_w, m_z_old).mT) + torch.vmap(torch.trace)(torch.matmul(s_w, s_z_old))
+      
 
       if f == sig:
         l = math.sqrt(math.pi/8)
@@ -139,7 +140,7 @@ class Network_Class:
         s_z_new = torch.maximum((torch.pow(m_a, 2) + s_a) * probit + m_a * p_a - torch.pow(m_z_new, 2), torch.ones(dimensions[i], dtype=torch.float64) * 10**(-12))
 
       m_z_old = torch.cat((torch.tensor([1], dtype=torch.float64), m_z_new), 0)
-      s_z_old = torch.block_diag(torch.tensor([[1]], dtype=torch.float64), torch.diag(s_z_new)) # TODO WTF WHY DOES THAT WORK?!?!? variance of bias is zero
+      s_z_old = torch.block_diag(torch.tensor([[0]], dtype=torch.float64), torch.diag(s_z_new)) # TODO WTF WHY DOES THAT WORK?!?!? variance of bias is zero
 
       forwardPassData[i] = [m_a, s_a, m_z_new, s_z_new]
 
@@ -159,12 +160,13 @@ class Network_Class:
     #for k in range(len(x_data)-1, -1, -1):
       x = x_data[k].unsqueeze(0)
       y = y_data[k].unsqueeze(0)
+
       x = torch.cat((torch.ones(1, dtype=torch.float64), x), 0)
       # forward pass
       forwardPassData = self.forwardPass(x)
 
       m_z_plus = y
-      s_z_plus = torch.zeros(y.size(0), y.size(0), dtype=torch.float64)
+      s_z_plus = torch.zeros(y.size(0), dtype=torch.float64)
 
       # iterate through each layer
       for i in range(len(dimensions)-1, -1, -1):
@@ -181,7 +183,7 @@ class Network_Class:
           w_count = dimensions[i-1] + 1
 
         assert m_z_plus.flatten().shape == torch.Size([perc_count]), f"Shape mismatch in m_z_plus"
-        assert s_z_plus.shape == torch.Size([perc_count, perc_count]), f"Shape mismatch in s_z_plus"
+        assert s_z_plus.shape == torch.Size([perc_count]), f"Shape mismatch in s_z_plus"
         assert m_z_minus_prev.shape == torch.Size([w_count]), f"Shape mismatch in m_z_minus_prev"
         assert s_z_minus_prev.shape == torch.Size([w_count]), f"Shape mismatch in s_z_minus_prev"
 
@@ -199,7 +201,7 @@ class Network_Class:
           t = torch.sqrt(1 + (l**2) * s_a_minus)
           cov_a_z = ((l * s_a_minus) / t) * (1 / math.sqrt(2 * math.pi)) * torch.exp(-((l * m_a_minus / t)**2) / 2)
         elif f == id:
-          cov_a_z = s_a_minus
+          cov_a_z = m_a_minus ** 2 + s_a_minus - m_z_minus * m_a_minus
         elif f == relu:
           p_a = torch.sqrt(s_a_minus)/math.sqrt(2 * math.pi) * exp(-0.5 * torch.pow(m_a_minus, 2) * torch.pow(s_a_minus, -1))
           probit = 0.5 * (1 + erf(m_a_minus * torch.pow(s_a_minus, -1/2) / math.sqrt(2)))
@@ -207,25 +209,28 @@ class Network_Class:
        
         assert cov_a_z.shape == torch.Size([perc_count]), f"Shape mismatch in cov_a_z"
         # K passt ist aber transponiert
+        k = cov_a_z / s_z_minus
+        # K = torch.cat([torch.pow(s_z_minus, -1).unsqueeze(0)*cov_a_z[i] for i in range(0, cov_a_z.size(0))])
 
-        K = torch.cat([torch.pow(s_z_minus, -1).unsqueeze(0)*cov_a_z[i] for i in range(0, cov_a_z.size(0))])
-
-        assert K.shape == torch.Size([perc_count, perc_count]), f"Shape mismatch in K"
+        # assert K.shape == torch.Size([perc_count, perc_count]), f"Shape mismatch in K"
         
-        m_a_plus = m_a_minus + torch.matmul(K, (m_z_plus.flatten() - m_z_minus))
-        s_a_plus = torch.maximum(s_a_minus + torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT), torch.ones(s_a_minus.size(0)) * 10**(-12))
+        m_a_plus = m_a_minus + k * (m_z_plus.flatten() - m_z_minus)
+        s_a_plus = torch.maximum(s_a_minus + (k **2) * (s_z_plus - s_z_minus), torch.ones(s_a_minus.size(0)) * 10**(-12))
+        # s_a_plus = torch.maximum(s_a_minus + torch.einsum("ij,jk,ki->i", K, (s_z_plus - torch.diag(s_z_minus)), K.mT), torch.ones(s_a_minus.size(0)) * 10**(-12))
 
         assert m_a_plus.shape == torch.Size([perc_count]), f"Shape mismatch in m_a_plus"
         assert s_a_plus.shape == torch.Size([perc_count]), f"Shape mismatch in s_a_plus"    
 
         # generate C_wza by doing the top and bottom half seperately
-        C_wza_top = torch.block_diag(*[torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)[i] for i in range(0, perc_count)])
+        
+        C_wza_top = (s_w @ m_z_minus_prev).mT
         C_wza_bot = s_z_minus_prev.unsqueeze(-1) * m_w
+        
         assert C_wza_top.shape == torch.Size([perc_count * w_count, perc_count]), f"Shape mismatch in C_wza_top"
         assert C_wza_bot.shape == torch.Size([w_count, perc_count]), f"Shape mismatch in C_wza_bot"
         C_wza = torch.cat((C_wza_top, C_wza_bot), 0)
         
-        L = C_wza  * torch.pow(s_a_minus, -1) 
+        L = C_wza  * torch.pow(s_a_minus, -1)
         
         m_w_big = m_w.mT.flatten().unsqueeze(0).mT
         s_w_big = torch.block_diag(*[s_w[i] for i in range(0, perc_count)])
@@ -238,7 +243,7 @@ class Network_Class:
         m_z_plus = torch.split(m_z_plus, [1, len(m_z_plus)-1])[1]
         c_w_plus = torch.split(torch.split(c_big, [w_count * perc_count, len(c_big) - w_count * perc_count])[0], [w_count * perc_count, len(c_big) - w_count * perc_count], 1)[0]
         s_z_plus = torch.split(torch.split(c_big, [w_count * perc_count, len(c_big) - w_count * perc_count])[1], [w_count * perc_count, len(c_big) - w_count * perc_count], 1)[1]
-        s_z_plus = torch.split(torch.split(s_z_plus, [1, s_z_plus.size(0)-1])[1], [1, s_z_plus.size(0)-1], 1)[1]
+        s_z_plus = torch.diag(torch.split(torch.split(s_z_plus, [1, s_z_plus.size(0)-1])[1], [1, s_z_plus.size(0)-1], 1)[1])
 
         m_w_plus = m_w_plus.flatten()
         # Here we break up the weight part for the batch and update the network
@@ -339,11 +344,13 @@ def testNetwork(network, data):
 
 
 torch.manual_seed(5)
-data = generateData(f4, -4, 4, 800)
-network = Network_Class(1, [1], [relu])
-#network.train(data)
-#sample(network, data, 100000, 700)
-print(network.network)
+data = generateData(f4, -4, 4, 2)
+network = Network_Class(1, [2, 1], [relu, id])
+# network.train(data)
+# sample(network, data, 100000, 700)
+# print(network.network)
+m_a, s_a, m_z_new, s_z_new = network.forwardPass(torch.tensor([1, -4], dtype=torch.float64))[1]
+print(m_z_new)
 testNetwork(network, data)
-print([data[0][0], data[1][0]])
-#sample(network, data, 100000, 700)
+# print([data[0][0], data[1][0]])
+# sample(network, data, 100000, 700)

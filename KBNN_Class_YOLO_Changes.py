@@ -184,13 +184,10 @@ class Network_Class:
 
         assert m_z_plus.flatten().shape == torch.Size([perc_count]), f"Shape mismatch in m_z_plus"
         assert s_z_plus.shape == torch.Size([perc_count]), f"Shape mismatch in s_z_plus"
-        print(m_z_minus_prev.shape)
-        print(torch.Size([w_count-1]))
         assert m_z_minus_prev.shape == torch.Size([w_count-1]), f"Shape mismatch in m_z_minus_prev"
         assert s_z_minus_prev.shape == torch.Size([w_count-1]), f"Shape mismatch in s_z_minus_prev"
 
         m_a_minus, s_a_minus, m_z_minus, s_z_minus = forwardPassData[i]
-        # print(i)
         
         assert m_a_minus.shape == torch.Size([perc_count]), f"Shape mismatch in m_a_minus"
         assert s_a_minus.shape == torch.Size([perc_count]), f"Shape mismatch in s_a_minus"
@@ -221,11 +218,9 @@ class Network_Class:
         
         C_wza_top = s_w @ torch.cat((torch.tensor([1], dtype=torch.float64), m_z_minus_prev), 0)
         C_wza_bot = torch.cat((torch.tensor([0], dtype=torch.float64), s_z_minus_prev), 0).unsqueeze(-1) * m_w
-        
-        #assert C_wza_top.shape == torch.Size([perc_count, perc_count * w_count]), f"Shape mismatch in C_wza_top"
-        #assert C_wza_bot.shape == torch.Size([w_count, perc_count]), f"Shape mismatch in C_wza_bot"
-        
+                
         Ca_inv = 1 / s_a_minus
+        print(Ca_inv)
         
         L_up = C_wza_top * torch.outer(Ca_inv, torch.ones((w_count)))
         L_low = C_wza_bot * Ca_inv.unsqueeze(0).repeat(w_count, 1) # TODO: eventuel auf genauigkeit vergleichen
@@ -236,6 +231,7 @@ class Network_Class:
         E = L_up * torch.outer(Da, torch.ones((w_count), dtype=torch.float64))
         F = L_up.unsqueeze(-1) @ torch.ones((1, w_count), dtype=torch.float64)
         
+        # print(self.network[i][1] + E.unsqueeze(1).repeat(1, w_count, 1) * F)
         self.network[i][1] = self.network[i][1] + E.unsqueeze(1).repeat(1, w_count, 1) * F
         #for k in range(self.Cw[i].shape[0]):
         #    self.Cw[i][k] = torch.diag(torch.diag(self.Cw[i][k]))
@@ -280,7 +276,7 @@ def testNetwork(network, data):
   start = time.time()
   plt.plot(data[0], data[1], '.', label = "f")
 
-  n_plots = 2
+  n_plots = 6
   color = iter(plt.cm.rainbow(np.linspace(0, 1, n_plots)))
 
   perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
@@ -334,14 +330,13 @@ def testNetwork(network, data):
 
 
 
-torch.manual_seed(56)
+torch.manual_seed(5)
 data = generateData(f4, -4, 4, 800)
-network = Network_Class(1, [100, 1], [relu, id])
+network = Network_Class(1, [10, 1], [relu, id])
+
+print(network.network[1][0])
+print(torch.roll(network.network[1][0], 10))
+
 # network.train(data)
-# sample(network, data, 100000, 700)
-#print(network.network)
-#m_a, s_a, m_z_new, s_z_new = network.forwardPass(torch.tensor([1, -4], dtype=torch.float64))[1]
-#print(s_a)
-testNetwork(network, data)
-# print([data[0][0], data[1][0]])
-# sample(network, data, 100000, 700)
+# sample(network, data, 100000, 400)
+# testNetwork(network, data)
