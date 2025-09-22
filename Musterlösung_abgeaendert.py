@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import time
 import numpy as np
+import random
 
 from torch import tanh as tanh
 from torch import cos as cos
@@ -43,10 +44,51 @@ class KBNN:
         self.act_fct = ["relu"] * (len(self.layers) - 1)
         self.act_fct[-1] = "linear"
 
-        self.noise = 0.01
+        self.noise = 0.1
 
         self.H_matr = []
 
+    def meanOutput(self, x):
+        """
+        Input:  @param x: vector, input for the network
+        Output: @output y: vector, the mean output from our network
+        """
+
+        if len(x.size()) == 0:
+            x = x.unsqueeze(0)
+            x = x.to(float)
+
+        # iterate through each layer 
+        for i in range(0, len(self.layers)-1):
+            f = self.act_fct[i]
+
+            if f == "relu":
+                x = torch.relu(torch.flatten(torch.matmul(torch.cat((x, torch.ones(1)), 0), self.mw[i].to(float))))
+            elif f == "linear":
+                x = torch.flatten(torch.matmul(torch.cat((x, torch.ones(1)), 0), self.mw[i].to(float)))
+        return x
+    
+    def staticOutput(self, x):
+        """
+        Input:  @param x: vector, input for the network
+        Output: @output y: vector, the approximation from our network
+        """
+
+        if len(x.size()) == 0:
+            x = x.unsqueeze(0)
+            x = x.to(float)
+
+        # iterate through each layer
+        for i in range(0, len(self.layers)-1):
+            f = self.act_fct[i]
+
+            m = torch.distributions.multivariate_normal.MultivariateNormal(self.mw[i].to(torch.float64).mT, self.Cw[i].to(torch.float64))
+            if f == "relu":
+                x = torch.relu(torch.matmul(torch.cat((x, torch.ones(1)), 0), m.sample().mT))
+            elif f == "linear":
+                x = torch.matmul(torch.cat((x, torch.ones(1)), 0), m.sample().mT)
+        return x
+    
     def forward_pass(self, x, training=False):
         """This is the implementation of the forward pass. Note that it can handle batches."""
 
@@ -64,7 +106,6 @@ class KBNN:
 
         for i in range(len(self.layers) - 1):
             activation = self.act_fct[i]
-
             ma[i] = mz_.float().mm(self.mw[i].float())
             self.ma[i] = ma[i]
 
@@ -102,6 +143,7 @@ class KBNN:
 
                 Cya = ma[i] ** 2 + Ca[i] - my[i] * ma[i]
 
+
             self.my[i] = my[i]
             self.Cy[i] = Cy[i]
             self.Cay[i] = Cya
@@ -137,8 +179,9 @@ class KBNN:
 
         assert ds_x.size(-1) == self.layers[0], f"Last data dimension has to be the same as input layer size.\n" \
                                                 f" last dim = {ds_x.shape[-1]} \n input layer size = {self.layers[0]} "
-        for x, y in tqdm(zip(ds_x, ds_y), total=ds_y.size(0), disable=True):
-
+        pairs = list(zip(ds_x, ds_y))
+        random.shuffle(pairs)
+        for x, y in tqdm(pairs, total=ds_y.size(0), disable=True):
             my, Cy, ma, Ca = self.forward_pass(torch.unsqueeze(x, 0), training=True)
 
             my_new = y
@@ -198,7 +241,6 @@ class KBNN:
                 L_up = Cwa * torch.outer(Ca_inv, torch.ones((ni)))
                 L_low = Cza * Ca_inv.unsqueeze(0).repeat(ni, 1)
                 
-                
                 self.mw[i] = self.mw[i] + torch.t(L_up * torch.outer(da, torch.ones((ni))))
                 if self.no_bias:
                     my_new = mz + L_low @ da
@@ -219,13 +261,14 @@ class KBNN:
                     Cy_new = Cz + G @ torch.ones((no))
                 else:
                     Cy_new = Cz + G[:-1] @ torch.ones((no))
-                print(Cy_new)
 
+def f3(x):
+  return cos(x)
 
 def f4(x):
   return x**3
 
-def generateData(f, a, b, points):
+def generateData(f, a, b, points, var, scaling):
   """
   Input:  @param f: function f(x) TODO multiple dimensions: for now one dimensional 
           @param a: creates the intervall with b 
@@ -235,29 +278,118 @@ def generateData(f, a, b, points):
           @output y: the y values we get through f(x) + pertubation
   """
   x = torch.linspace(a, b, points, dtype=torch.float64)
-  y = f(x) + torch.normal(torch.zeros(x.shape), torch.ones(x.shape)) * 8
+  y = (f(x) + torch.normal(torch.zeros(x.shape), torch.ones(x.shape)) * var) * scaling
+  x = x.to(float)
+  y = y.to(float)
   return x, y
 
-myKBNN = KBNN([1, 2, 1], bias=True)
+def sample(network, data, times, place):
+  """
+  Input:  @param network: A netork class
+          @param data: The data to train the network with in form of [x_data, y_data]
+          @times: The amount of samples taken
+          @place: Place is the number of the data point you want to sample for. 
+                  For example: in a dataset with 800 points 0 is the first point and 799 would be the last.
+  """
+  x = data[0][place]
+  my, Cy, ma, Ca = network.forward_pass(x=torch.tensor([[data[0][place].item()]]), training=False)
+  samples = [None] * times
+  for i in range(0, times):
+    samples[i] = network.staticOutput(x.unsqueeze(0)).item()
+
+  print(x)
+  
+  print("mean: ", np.mean(samples))
+  print("var: ", np.var(samples))
+
+  print("mean error: ", (np.mean(samples) - my).item())
+  print("var error: ", (np.var(samples) - Cy).item())
+
+  plt.hist(samples)
+  plt.show()
+
+def plotNetwork(network, data, y_1, y_2, sclaing):
+    plt.plot(data[0], data[1]/scaling, '.', label = "f")
+    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
+    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+
+    for i in range(0, data[0].size(0)):
+        perceptron_Plot[i] = network.meanOutput(data[0][i])
+        my, Cy, ma, Ca = network.forward_pass(x=torch.tensor([[data[0][i].item()]]), training=False)
+        perceptron_Plot_var[i] = 2 * torch.sqrt(Cy)
+    plt.plot(data[0], perceptron_Plot/sclaing, label='epoch Nr. {k}'.format(k=0))
+    plt.fill_between(data[0], (perceptron_Plot-perceptron_Plot_var)/sclaing, (perceptron_Plot + perceptron_Plot_var)/sclaing, alpha=0.2)
+    plt.ylim(y_1, y_2)
+    plt.show()
 
 
-myKBNN.mw[0] = torch.tensor([[-0.6258,  0.4705,  0.6731, -1.0122, -0.2749,  1.3004,  0.0657,  0.0471,
-                               0.7294,  0.9160],
-                             [-1.2152,  2.2456, -0.0345, -0.4058, -0.6944,  1.7497, -1.6293,  2.0370,
-                              -0.1441, -0.5452]], dtype=torch.float64).float()
-myKBNN.mw[1] = torch.tensor([[-0.7626],
-                             [ 0.6312],
-                             [-1.4017]], dtype=torch.float64).float()
 
+"""
+myKBNN.mw[0] = torch.tensor([[ 0.8236, -0.7421, -0.5944, -0.3985, -1.4027,  0.7038,  0.0510,  0.8372,
+         -0.3622, -0.7125],
+        [ 0.6072,  0.4976, -0.4011, -0.7199, -0.2686, -0.3955,  1.9172,  0.2522,
+         -0.1279,  0.1740]], dtype=torch.float64).float()
+myKBNN.mw[1] = torch.tensor([[-0.9959],
+        [ 1.1563],
+        [-0.3992],
+        [ 1.2153],
+        [-0.8115],
+        [-0.8848],
+        [-0.0070],
+        [-1.7700],
+        [-1.1698],
+        [-0.2593],
+        [ 0.2692]], dtype=torch.float64).float()
+"""
 
-#for i in range(0, len(myKBNN.layers)-1):
-#    print(myKBNN.mw[i])
-#    print(myKBNN.Cw[i])
-#    print(myKBNN.act_fct[i])
-x, y = (torch.tensor([-4.,  4.], dtype=torch.float64), torch.tensor([-67.8942,  59.1694], dtype=torch.float64))
+"""
+data = (torch.tensor([-4.0000, -3.9192, -3.8384, -3.7576, -3.6768, -3.5960, -3.5152, -3.4343,
+        -3.3535, -3.2727, -3.1919, -3.1111, -3.0303, -2.9495, -2.8687, -2.7879,
+        -2.7071, -2.6263, -2.5455, -2.4646, -2.3838, -2.3030, -2.2222, -2.1414,
+        -2.0606, -1.9798, -1.8990, -1.8182, -1.7374, -1.6566, -1.5758, -1.4949,
+        -1.4141, -1.3333, -1.2525, -1.1717, -1.0909, -1.0101, -0.9293, -0.8485,
+        -0.7677, -0.6869, -0.6061, -0.5253, -0.4444, -0.3636, -0.2828, -0.2020,
+        -0.1212, -0.0404,  0.0404,  0.1212,  0.2020,  0.2828,  0.3636,  0.4444,
+         0.5253,  0.6061,  0.6869,  0.7677,  0.8485,  0.9293,  1.0101,  1.0909,
+         1.1717,  1.2525,  1.3333,  1.4141,  1.4949,  1.5758,  1.6566,  1.7374,
+         1.8182,  1.8990,  1.9798,  2.0606,  2.1414,  2.2222,  2.3030,  2.3838,
+         2.4646,  2.5455,  2.6263,  2.7071,  2.7879,  2.8687,  2.9495,  3.0303,
+         3.1111,  3.1919,  3.2727,  3.3535,  3.4343,  3.5152,  3.5960,  3.6768,
+         3.7576,  3.8384,  3.9192,  4.0000], dtype=torch.float64).float(), torch.tensor([-49.2614, -56.0479, -70.2470, -66.6657, -33.5495, -48.6480, -44.4800,
+        -52.0064, -34.5884, -35.2051, -43.3419, -35.9590, -19.9231, -29.0145,
+        -28.2866, -27.9268,   2.4009,  -8.3378, -19.1845, -22.6919, -14.5839,
+        -17.0293,  -9.8139, -11.0184, -12.2487,  -1.5261,  -7.3148, -22.2545,
+          6.6193,  -0.5937,  -1.9189,  10.6352,  -4.9213,  -8.2295,  11.6194,
+         -3.0420,  14.0862,   1.2730,   6.6918, -19.8359,  -1.6356,   6.8496,
+          4.1625, -13.2579, -14.6102,  -1.7011,  -4.2302, -13.5901,   6.5326,
+          3.2771,   1.7299,   8.7203,   1.3925,   1.3568,  -9.0499,  -6.4789,
+        -14.1969,   7.2401,  17.6370,  -1.0319,   8.5360,   6.7432,  11.1921,
+         11.8800,  -2.5362,  14.4712,  12.2564,  14.7977,   7.1260,   8.7688,
+         -2.4774,  -0.6965,   8.2758,  -5.1370,   5.2870,   3.9167,  -5.9182,
+          9.8799,  27.1779,  14.7506,   8.4463,  13.4219,  21.3305,   8.3676,
+         14.5414,  21.5296,  23.8031,  31.3858,  38.8362,  26.0820,  34.5406,
+         44.3429,  39.0464,  44.4923,  50.5254,  47.9237,  54.0630,  57.0344,
+         55.6574,  55.2323], dtype=torch.float64).float())
+"""
+
+scaling = 80
+x_1 = -1
+x_2 = 1
+y_1 = 0
+y_2 = 1.5
+data_var = 0.1
+net_var = 1
+test_f = f3
+
+myKBNN = KBNN([1, 100, 1], bias=True)
+
+torch.manual_seed(500098)
+data = generateData(test_f, x_1, x_2, 800, data_var, scaling)
+
+x, y = data
 
 myKBNN.train(x.unsqueeze(0).mT.float(), y.unsqueeze(0).mT.float())
 
-my, Cy, ma, Ca = myKBNN.forward_pass(x=torch.tensor([[-4]]), training=True)
+plotNetwork(myKBNN, data, y_1, y_2, scaling)
 
-print(Ca[1])
+sample(myKBNN, data, 100000, 90)
