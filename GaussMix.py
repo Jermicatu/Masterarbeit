@@ -30,6 +30,7 @@ def id(x):
 def f5(x):
   return torch.sum(x)
 
+"""
 def Gauss_approx(f_w, f_mean, f_var, g_w, g_mean, g_var):
   sol = 0
 
@@ -56,8 +57,13 @@ def Gauss_approx(f_w, f_mean, f_var, g_w, g_mean, g_var):
       P[i, j, 2, 2] = 1.0
 
   return P.permute(0, 2, 1, 3).reshape(5*3, 5*3)
+"""
 
 def P_1(eta):
+    """
+    Input:  @param eta: two dimensional tensor of form [w, mu, sigma]
+    Output: matrix tensor representing P_1
+    """
     w, mu, sigma = eta[0], eta[1], eta[2]
     assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
@@ -93,9 +99,6 @@ def P_1(eta):
     frac = md4 + 3.0 * s2 * (s2 - 2.0 * md2) / s2_4
     P33 = w_i * w_j * torch.sqrt(sigma_i) * torch.sqrt(sigma_j) * frac
 
-    print(P22)
-    print(prefactor)
-
 
     blocks = torch.stack([
         torch.stack([P11, P12, P13], dim=-1),
@@ -108,6 +111,11 @@ def P_1(eta):
     return P_1
 
 def gaussian_mixture(x, eta):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+    Output: f(x) one dimensional vector of same shape as x where f(x) is a gaussian mix f defined via eta
+    """
     w, mu, sigma = eta[0], eta[1], eta[2]
     assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
@@ -125,6 +133,14 @@ def gaussian_mixture(x, eta):
     return (w * gaussians).sum(dim=1)
 
 def gaussian_mix_gamma(x, eta, gamma, noise):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: f(x) one dimensional vector of same shape as x where f(x) is a gaussian mix f defined via eta, gamma and noise
+    """
+    
     w, mu, var = eta[0], eta[1], eta[2]
 
     assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
@@ -143,6 +159,13 @@ def gaussian_mix_gamma(x, eta, gamma, noise):
     return (weights * gaussians).sum(dim=1)
 
 def gaussian_tilde(x, eta_1, eta_2, gamma, noise):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: f(x) one dimensional vector of same shape as x where f(x) is a gaussian tilde f defined via eta, gamma and noise
+    """
     gamma_mix_2 = gaussian_mixture(x, eta_2)
     gamma_mix_1 = gaussian_mix_gamma(x, eta_1, gamma, noise)
 
@@ -320,4 +343,7 @@ mu_3 = torch.tensor([0.0, 2.0, -1.0])
 var_3 = torch.tensor([0.5, 0.2, 1.0])
 eta_3 = torch.stack([w_3, mu_3, var_3])
 
-print("P_1(eta_1): ", P_1(eta_1))
+x_vals = torch.tensor([1, 0])
+
+print("===================================================================")
+print("gaussian_mixture(x_vals, eta_1): ", gaussian_mixture(x_vals, eta_1))
