@@ -117,9 +117,10 @@ def gaussian_mixture(x, eta):
     Output: f(x) one dimensional vector of same shape as x where f(x) is a gaussian mix f defined via eta
     """
     w, mu, sigma = eta[0], eta[1], eta[2]
-    assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
     x = x[:, None]
+
     mu = mu[None, :]
     sigma = sigma[None, :]
     w = w[None, :]
@@ -172,6 +173,11 @@ def gaussian_tilde(x, eta_1, eta_2, gamma, noise):
     return gamma_mix_1 * gamma_mix_2
 
 def big_M(x, eta):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+    Output: three dimensional matrix tensor representing matrix P_1(x) for multiple x
+    """
     w, mu, sigma = eta[0], eta[1], eta[2]
     assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
     
@@ -211,9 +217,10 @@ def big_M(x, eta):
       torch.stack([M31, M32, M33], dim=-1),
     ], dim=-2)
 
-    f = gaussian_mixture(x, w, mu, sigma).reshape(-1, 1, 1, 1)
+    f = gaussian_mixture(x, eta).reshape(-1, 1, 1, 1)
+    
     blocks = blocks * f
-
+    
     bigM = torch.zeros((K, L, L, 3, 3), dtype=blocks.dtype, device=blocks.device)
     diag_idx = torch.arange(L, device=blocks.device)
     bigM[:, diag_idx, diag_idx] = blocks
@@ -222,42 +229,92 @@ def big_M(x, eta):
     return bigM
 
 def delta_P_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
-    return (gaussian_mixture(x, eta_1) - gaussian_tilde(x, eta_2, eta_3, gamma, noise)) * big_M(x, eta_1)
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: the integrand of delta P
+    """
+    
+    return (gaussian_mixture(x, eta_1) - gaussian_tilde(x, eta_2, eta_3, gamma, noise)).view(-1,1,1) * big_M(x, eta_1)
 
 def gh_nodes_weights(n_nodes: int):
-    # numpy hermgauss (nodes, weights) for weight e^{-x^2}
+    """
+    Input:  @param n_nodes: number of nodes the integration uses
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: nodes, weights for the hermgauss for weight e^{-x^2}
+    """
     nodes_np, weights_np = np.polynomial.hermite.hermgauss(n_nodes)
     nodes = torch.as_tensor(nodes_np, dtype=torch.float32, device="cpu")   # shape (n,)
     weights = torch.as_tensor(weights_np, dtype=torch.float32, device="cpu") # shape (n,)
     return nodes, weights
 
 def delta_P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
+    """
+    Input:  @param n_nodes: number of nodes the integration uses
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: delta P
+    """
     nodes, weights = gh_nodes_weights(n_nodes)
-   
-    # n x m x m * n x 1 * n x 1
-    return delta_P_integrand(nodes, eta_1, eta_2, eta_3, gamma, noise) * torch.exp(nodes**2).view(-1, 1, 1) * weights.view(-1, 1, 1)
+    return delta_P_integrand(nodes, eta_1, eta_2, eta_3, gamma, noise) * torch.exp(nodes**2).view(-1, 1, 1) * weights.view(-1, 1, 1).sum(dim=0)
 
 def P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
-   
+    """
+    Input:  @param n_nodes: number of nodes the integration uses
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: matrix P
+    """
     return P_1(eta_1) + delta_P(n_nodes, eta_1, eta_2, eta_3, gamma, noise)
 
 def b_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: the integrand b
+    """
     w_1, mu_1, sigma_1 = eta_1[0], eta_1[1], eta_1[2]
     w_2, mu_2, sigma_2 = eta_2[0], eta_2[1], eta_2[2]
     x_expanded = x.view(-1, 1)
-
-    f_i = torch.zeros(w_1.shape[0])
-    for i in range(0, w_1.shape[0]):
-       eta_i = torch.stack([w_1[i], mu_1[i], var_1[i]])
-       f_i[i] = gaussian_mixture(x, eta_i)
+    #print(w_1.size(0))
+    f_i = torch.zeros(w_1.size(0), x.size(0))
+    for i in range(0, w_1.size(0)):
+      eta_i = torch.stack([w_1[i], mu_1[i], var_1[i]]).view(-1,1)
+      f_i[i] = gaussian_mixture(x, eta_i)
 
     inner_derivative = -(((x_expanded - mu_2)**2) / sigma_2) * ((1 + gamma)/((1 + noise)**2))
+    print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEELP")
+    print(inner_derivative.size())
+    print((gaussian_mixture(x, eta_2) * gaussian_mixture(x, eta_3)).size())
+    print(f_i.size())
 
-    factor = inner_derivative* gaussian_mixture(x, eta_2) * gaussian_mixture(x, eta_3) * f_i
+    factor = inner_derivative * gaussian_mixture(x, eta_2) * gaussian_mixture(x, eta_3) * f_i
 
     term1 = w_1**(-1).expand(x_expanded.shape[0], -1) * factor
     term2 = ((x_expanded - mu_1) / sigma_1 ) * factor
     term3 = (((x_expanded - mu_1)**2 - (sigma_1)) / (sigma_1 ** (3/2))) * factor
+
+    print(term1 / factor)
+    print(term2 / factor)
+    print(term3 / factor)
 
     stacked = torch.cat([term1, term2, term3], dim=1)
 
@@ -338,12 +395,15 @@ mu_2 = torch.tensor([0.0, 5.0, -10.0])
 var_2 = torch.tensor([0.7, 0.1, 10.0])
 eta_2 = torch.stack([w_2, mu_2, var_2])
 
-w_3 = torch.tensor([0.2, 0.5, 0.3])
-mu_3 = torch.tensor([0.0, 2.0, -1.0])
-var_3 = torch.tensor([0.5, 0.2, 1.0])
+w_3 = torch.tensor([0.2, 0.4, 0.3, 0.1])
+mu_3 = torch.tensor([0.0, 2.0, -1.0, 5.5])
+var_3 = torch.tensor([0.5, 0.2, 1.0, 2.0])
 eta_3 = torch.stack([w_3, mu_3, var_3])
 
-x_vals = torch.tensor([1, 0])
+x_vals = torch.tensor([1])
+n_nodes = 10
+gamma = 0.5
+noise = 0.01
 
 print("===================================================================")
-print("gaussian_mixture(x_vals, eta_1): ", gaussian_mixture(x_vals, eta_1))
+print("b: ", b(n_nodes, eta_1, eta_2, eta_3, gamma, noise).size())
