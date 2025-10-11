@@ -5,6 +5,7 @@ import time
 import numpy as np
 import random
 
+
 from torch import tanh as tanh
 from torch import cos as cos
 from torch import sigmoid as sig
@@ -30,42 +31,13 @@ def id(x):
 def f5(x):
   return torch.sum(x)
 
-"""
-def Gauss_approx(f_w, f_mean, f_var, g_w, g_mean, g_var):
-  sol = 0
-
-  N = f_mean.shape[0]
-
-  device = "cuda" if torch.cuda.is_available() else "cpu"
-  dtype = torch.float32
-
-  P = torch.empty(N, N, 3, 3, device=device, dtype=dtype)
-
-  for i in range(0,N):
-    for j in range(0,N):
-      # TODO richtige formeln
-      P[i, j, 0, 0] = 1.0
-      P[i, j, 0, 1] = 0.0
-      P[i, j, 0, 2] = f_mean[i]
-
-      P[i, j, 1, 0] = g_mean[i]
-      P[i, j, 1, 1] = g_mean[j]
-      P[i, j, 1, 2] = g_mean[i]
-
-      P[i, j, 2, 0] = f_mean[i]
-      P[i, j, 2, 1] = 0.0
-      P[i, j, 2, 2] = 1.0
-
-  return P.permute(0, 2, 1, 3).reshape(5*3, 5*3)
-"""
-
 def P_1(eta):
     """
     Input:  @param eta: two dimensional tensor of form [w, mu, sigma]
     Output: matrix tensor representing P_1
     """
     w, mu, sigma = eta[0], eta[1], eta[2]
-    assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
     N = mu.shape[0]
     mu_i = mu[:, None]
@@ -94,7 +66,7 @@ def P_1(eta):
     P21 = w_i * (-mu_diff) / s2
     P22 = w_i * w_j * (s2 - md2) / (s2_2)
     P23 = w_i * w_j * torch.sqrt(sigma_j) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
-    P31 = w_i * sigma_i * (md2 - s2_2) / (s2_2)
+    P31 = w_i * torch.sqrt(sigma_i) * (md2 - s2_2) / (s2_2)
     P32 = w_i * w_j * torch.sqrt(sigma_i) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
     frac = md4 + 3.0 * s2 * (s2 - 2.0 * md2) / s2_4
     P33 = w_i * w_j * torch.sqrt(sigma_i) * torch.sqrt(sigma_j) * frac
@@ -108,6 +80,7 @@ def P_1(eta):
 
     blocks = blocks * prefactor[..., None, None]
     P_1 = blocks.permute(0, 2, 1, 3).reshape(3*N, 3*N)
+
     return P_1
 
 def gaussian_mixture(x, eta):
@@ -144,7 +117,7 @@ def gaussian_mix_gamma(x, eta, gamma, noise):
     
     w, mu, var = eta[0], eta[1], eta[2]
 
-    assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
     factor = ((1 + noise)/(gamma+noise))**2
 
@@ -153,10 +126,37 @@ def gaussian_mix_gamma(x, eta, gamma, noise):
     variances = var[None, :]
     weights = w[None, :]
 
-    coef = 1.0 / torch.sqrt(2 * math.pi * variances)
+    coef = 1.0 # / torch.sqrt(2 * math.pi * variances)
     exponent = torch.exp(-0.5 * (x - means) ** 2 / (variances*factor))
     gaussians = coef * exponent  # shape (K, L)
     # Weighted sum over components
+    return (weights * gaussians).sum(dim=1)
+
+def gaussian_mix_gamma_diff(x, eta, gamma, noise):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: f'(x) one dimensional vector of same shape as x where f'(x) is a gaussian mix f defined via eta, gamma and noise
+    """
+    
+    w, mu, var = eta[0], eta[1], eta[2]
+
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+
+    factor = ((1 + noise)/(gamma+noise))**2
+
+    x = x[:, None]
+    means = mu[None, :]
+    variances = var[None, :]
+    weights = w[None, :]
+
+    coef = (noise - gamma) * (x - means) / (1 + noise)**2 * variances
+    exponent = torch.exp(-0.5 * (x - means) ** 2 / (variances*factor))
+    gaussians = coef * exponent  # shape (K, L)
+    # Weighted sum over components
+
     return (weights * gaussians).sum(dim=1)
 
 def gaussian_tilde(x, eta_1, eta_2, gamma, noise):
@@ -172,6 +172,22 @@ def gaussian_tilde(x, eta_1, eta_2, gamma, noise):
 
     return gamma_mix_1 * gamma_mix_2
 
+def gaussian_individual(x, eta):
+    """
+    Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+            @param eta: two dimensional tensor of form [w, mu, sigma]
+    Output: f(x) for each individual Gaussian eta_i
+    """
+
+    w, mu, sigma = eta[0], eta[1], eta[2]
+
+    f_i = torch.zeros(x.size(0), w.size(0))
+    for i in range(0, w.size(0)):
+      eta_i = torch.stack([w[i], mu[i], sigma[i]]).view(-1,1)
+      f_i[:, i] = gaussian_mixture(x, eta_i)
+   
+    return f_i
+
 def big_M(x, eta):
     """
     Input:  @param x: one dimensional tensor stating the x-values for which we want an output
@@ -179,7 +195,7 @@ def big_M(x, eta):
     Output: three dimensional matrix tensor representing matrix P_1(x) for multiple x
     """
     w, mu, sigma = eta[0], eta[1], eta[2]
-    assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
     
   
     K = x.shape[0]
@@ -228,7 +244,7 @@ def big_M(x, eta):
 
     return bigM
 
-def delta_P_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
+def delta_P_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
     """
     Input:  @param x: one dimensional tensor stating the x-values for which we want an output
             @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
@@ -239,7 +255,7 @@ def delta_P_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
     Output: the integrand of delta P
     """
     
-    return (gaussian_mixture(x, eta_1) - gaussian_tilde(x, eta_2, eta_3, gamma, noise)).view(-1,1,1) * big_M(x, eta_1)
+    return (gaussian_mixture(x, eta_start) - gaussian_tilde(x, eta_1, eta_2, gamma, noise)).view(-1,1,1) * big_M(x, eta_start)
 
 def gh_nodes_weights(n_nodes: int):
     """
@@ -256,7 +272,7 @@ def gh_nodes_weights(n_nodes: int):
     weights = torch.as_tensor(weights_np, dtype=torch.float32, device="cpu") # shape (n,)
     return nodes, weights
 
-def delta_P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
+def delta_P(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     """
     Input:  @param n_nodes: number of nodes the integration uses
             @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
@@ -267,9 +283,10 @@ def delta_P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
     Output: delta P
     """
     nodes, weights = gh_nodes_weights(n_nodes)
-    return delta_P_integrand(nodes, eta_1, eta_2, eta_3, gamma, noise) * torch.exp(nodes**2).view(-1, 1, 1) * weights.view(-1, 1, 1).sum(dim=0)
 
-def P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
+    return (delta_P_integrand(nodes, eta_start, eta_1, eta_2, gamma, noise) * torch.exp(nodes**2).view(-1, 1, 1) * weights.view(-1, 1, 1)).sum(dim=0)
+
+def P(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     """
     Input:  @param n_nodes: number of nodes the integration uses
             @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
@@ -279,9 +296,9 @@ def P(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
             @param noise: float 
     Output: matrix P
     """
-    return P_1(eta_1) + delta_P(n_nodes, eta_1, eta_2, eta_3, gamma, noise)
+    return P_1(eta_start) + delta_P(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
 
-def b_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
+def b_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
     """
     Input:  @param x: one dimensional tensor stating the x-values for which we want an output
             @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
@@ -291,119 +308,218 @@ def b_integrand(x, eta_1, eta_2, eta_3, gamma, noise):
             @param noise: float 
     Output: the integrand b
     """
-    w_1, mu_1, sigma_1 = eta_1[0], eta_1[1], eta_1[2]
-    w_2, mu_2, sigma_2 = eta_2[0], eta_2[1], eta_2[2]
+    w_start, mu_start, sigma_start = eta_start[0], eta_start[1], eta_start[2]
     x_expanded = x.view(-1, 1)
-    #print(w_1.size(0))
-    f_i = torch.zeros(w_1.size(0), x.size(0))
-    for i in range(0, w_1.size(0)):
-      eta_i = torch.stack([w_1[i], mu_1[i], var_1[i]]).view(-1,1)
-      f_i[i] = gaussian_mixture(x, eta_i)
 
-    inner_derivative = -(((x_expanded - mu_2)**2) / sigma_2) * ((1 + gamma)/((1 + noise)**2))
-    print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEELP")
-    print(inner_derivative.size())
-    print((gaussian_mixture(x, eta_2) * gaussian_mixture(x, eta_3)).size())
-    print(f_i.size())
+    f_i = torch.zeros(x.size(0), w_start.size(0))
+    for i in range(0, w_start.size(0)):
+      eta_i = torch.stack([w_start[i], mu_start[i], sigma_start[i]]).view(-1,1)
+      f_i[:, i] = gaussian_mixture(x, eta_i)
+    
+    factor = (gaussian_mix_gamma_diff(x, eta_1, gamma, noise) * gaussian_mixture(x, eta_2)).view(-1,1) * gaussian_individual(x, eta_start)
 
-    factor = inner_derivative * gaussian_mixture(x, eta_2) * gaussian_mixture(x, eta_3) * f_i
+    term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
+    term2 = ((x_expanded - mu_start) / sigma_start ) * factor
+    term3 = (((x_expanded - mu_start)**2 - (sigma_start)) / (sigma_start ** (3/2))) * factor
 
-    term1 = w_1**(-1).expand(x_expanded.shape[0], -1) * factor
-    term2 = ((x_expanded - mu_1) / sigma_1 ) * factor
-    term3 = (((x_expanded - mu_1)**2 - (sigma_1)) / (sigma_1 ** (3/2))) * factor
+    stacked = torch.cat([term1.unsqueeze(0), term2.unsqueeze(0), term3.unsqueeze(0)], dim=0)
+    return stacked.permute(2,0,1).reshape(-1,x.size(0)).T
 
-    print(term1 / factor)
-    print(term2 / factor)
-    print(term3 / factor)
-
-    stacked = torch.cat([term1, term2, term3], dim=1)
-
-    return stacked
-
-def b(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
+def b(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     nodes, weights = gh_nodes_weights(n_nodes)
-
+    
     # n x m * n x 1 * n x 1
-    return b_integrand(nodes, eta_1, eta_2, eta_3, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)
+    return (b_integrand(nodes, eta_start, eta_1, eta_2, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
 
-def ode(n_nodes, eta_1, eta_2, eta_3, gamma, noise):
-    return b(n_nodes, eta_1, eta_2, eta_3, gamma, noise) / P(n_nodes, eta_1, eta_2, eta_3, gamma, noise)
+def solve_Pb(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
+    eta_shape = eta_start.size()
+    b_vec = b(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
+    P_mat = P(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
 
-"""
-eta_0 = [1.0]           
-gamma_span = (0, 1)
+    return torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1).view(eta_shape[::-1]).T
 
-f_w = torch.tensor([0.2, 0.2, 0.2, 0.2, 0.2])
-f_mean = torch.tensor([1, 2, 3, 4, 5])
-f_var = torch.tensor([1, 1, 1, 1, 1])
-g_w = torch.tensor([0.2, 0.2, 0.2, 0.2, 0.2])
-g_mean = torch.tensor([10, 20, 30, 40, 50])
-g_var = torch.tensor([5, 5, 5, 5, 5])
+def in_margin(n_nodes, eta_approx, eta_1, eta_2, margin):
+    """    
+    Input:
+        n_nodes: int, number of nodes used in Gauss Hermite integration
+        eta_approx: Parameters for the approximated Gauss mix
+        eta_1: Parameters for Gauss mix 2
+        eta_2: Parameters for Gauss mix 2
+        margin: float, states the acceptable error
+    Output:
+        check: boolean that is true is the error is within acceptable range and false if not
+        # TODO test code
+    """
 
-print(Gauss_approx(f_w, f_mean, f_var, g_mean, g_var, g_w))
+    nodes, weights = gh_nodes_weights(n_nodes)
+    f_p = gaussian_mixture(nodes, eta_1) * gaussian_mixture(nodes, eta_2)
+    f_approx = gaussian_mixture(nodes, eta_approx)
 
-mu = torch.nn.Parameter(torch.tensor([0.0]))
-sigma = torch.nn.Parameter(torch.tensor([2.0]))
-w = torch.nn.Parameter(torch.tensor([1.0]))
-eta = torch.stack([w, mu, sigma])
-P_1 = P_1(eta)
+    dif = (f_p - f_approx)**2
 
-print("big: ", P_1)
+    d =          (dif             * torch.exp(nodes**2) * weights).sum(dim=0)
+    int_p =      ((f_p ** 2)      * torch.exp(nodes**2) * weights).sum(dim=0)
+    int_approx = ((f_approx ** 2) * torch.exp(nodes**2) * weights).sum(dim=0)
 
-w = torch.tensor([0.2, 0.5, 0.3])
-mu = torch.tensor([0.0, 2.0, -1.0])
-var = torch.tensor([0.5, 0.2, 1.0])
-eta = torch.stack([w, mu, var])
-x_vals = torch.tensor([1, 0])
+    d = d / (int_p + int_approx)
 
-print("Gauss mix: ", gaussian_mixture(x_vals, eta))
+    if d < margin:
+       check = True
+    else:
+       check = False 
 
-w_1 = torch.tensor([0.2, 0.5, 0.3])
-mu_1 = torch.tensor([0.0, 2.0, -1.0])
-var_1 = torch.tensor([0.5, 0.2, 1.0])
-eta_1 = torch.stack([w_1, mu_1, var_1])
+    return check
 
-w_2 = torch.tensor([0.1, 0.6, 0.3])
-mu_2 = torch.tensor([0.0, 5.0, -10.0])
-var_2 = torch.tensor([0.7, 0.1, 10.0])
-eta_2 = torch.stack([w_2, mu_2, var_2])
+def add_component(n_nodes, eta_approx, eta_1, eta_2):
+    """    
+    Args:
+        n_nodes: int, number of nodes used in Gauss Hermite integration
+        eta_approx: Parameters for the approximated Gauss mix
+        eta_1: Parameters for Gauss mix 2
+        eta_2: Parameters for Gauss mix 2
+    Returns:
+        new_eta: new eta with an extra component for higher accuracy
+        # TODO test code
+    """
 
-# Evaluation points
-x_vals = torch.tensor([1, 0])
-gamma = 0.1
-noise = 0.01
+    nodes, weights = gh_nodes_weights(n_nodes)
+    f_p = gaussian_mixture(nodes,eta_1) * gaussian_mixture(nodes,eta_2)
+    f_approx = gaussian_mixture(nodes, eta_approx)
 
-print("Gauss tilde: ", gaussian_tilde(x_vals, eta_1, eta_2, gamma, noise))
+    dif = (f_p - f_approx) **2
 
-x_3 = torch.tensor([1])
-w_3 = torch.tensor([0.5, 0.5])
-mu_3 = torch.tensor([-1.0, 1.0])
-var_3 = torch.tensor([0.5, 1.5])
-eta_3 = torch.stack([w_3, mu_3, var_3])
+    distances = (dif * gaussian_individual(nodes, eta_approx) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
 
-print("big_M: ", big_M(x_3, w_3, mu_3, var_3))
-"""
+    i = distances.argmax()
+
+    eta_append = eta_approx[:, i:i+1]
+
+    eta_approx[0, i] = eta_approx[0, i]/2
+    eta_append[0] = eta_approx[0, i]
+
+    epsilon = 0.4 * eta_approx[2, i]
+
+    eta_append[1] = eta_approx[1, i] + epsilon
+
+    new_eta = torch.cat((eta_approx, eta_append), dim=1)
+    
+    new_eta[1, i] = eta_approx[1, i] - 2*epsilon
+
+    return new_eta
+
+def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
+    """    
+    Args:
+        n_nodes:
+        n_steps:
+        eta_start:
+        eta_1:
+        eta_2:
+        noise    
+    Returns:
+        gammas: torch tensor of shape (n_steps+1,)
+        etas:   torch tensor of shape (n_steps+1, n)
+    """
+    h = 1 / n_steps
+    
+    gammas = torch.linspace(0, 1, n_steps+1)
+    etas = [eta_start]
+    eta = eta_start
+
+    x = torch.linspace(-30, 30, 400)
+    f = gaussian_mixture(x, eta)
+    plt.plot(x, f)
+
+    for i in range(n_steps):
+        g = gammas[i]
+        k1 = solve_Pb(n_nodes, eta, eta_1, eta_2, g, noise)
+
+        k1[2, :] = torch.clamp(k1[2, :], min=0.01)
+        k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
+        k2[2, :] = torch.clamp(k2[2, :], min=0.01)
+        k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
+        k3[2, :] = torch.clamp(k3[2, :], min=0.01)
+        k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
+        k4[2, :] = torch.clamp(k4[2, :], min=0.01)
+
+        eta = eta + (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        #if in_margin(nnodes, etastart, eta1, eta2, margin) == False:
+        #    add_component(nnodes, etastart, eta1, eta2)
+
+        f = gaussian_mixture(x, eta)
+        plt.plot(x, f)
+        etas.append(eta)
+    plt.grid(True)
+    plt.show()
+
+    # return gammas, torch.stack(etas)
+    return eta
+
+def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
+    new_eta = rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise)
+    # print(new_eta)
+    x = torch.linspace(-30, 30, 400)
+    f_0 = gaussian_mixture(x, new_eta)
+    f_1 = gaussian_mixture(x, eta_1)
+    f_2 = gaussian_mixture(x, eta_2)
+    f_tild = gaussian_tilde(x, eta_1, eta_2, 1, noise)
+    f_p = f_1*f_2
 
 
-w_1 = torch.tensor([0.2, 0.8])
-mu_1 = torch.tensor([0.0, 2.0])
-var_1 = torch.tensor([0.5, 0.2])
-eta_1 = torch.stack([w_1, mu_1, var_1])
+    plt.plot(x, f_0, label="approximation")
+    plt.plot(x, f_1, label="f_1")
+    plt.plot(x, f_2, label="f_2")
+    plt.plot(x, f_tild, label="f_tilde")
+    plt.plot(x, f_p, label="f_p")
 
-w_2 = torch.tensor([0.1, 0.6, 0.3])
-mu_2 = torch.tensor([0.0, 5.0, -10.0])
-var_2 = torch.tensor([0.7, 0.1, 10.0])
-eta_2 = torch.stack([w_2, mu_2, var_2])
+    plt.legend()
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.grid(True)
+    # plt.ylim(0, 0.3)
+    plt.show()
 
-w_3 = torch.tensor([0.2, 0.4, 0.3, 0.1])
-mu_3 = torch.tensor([0.0, 2.0, -1.0, 5.5])
-var_3 = torch.tensor([0.5, 0.2, 1.0, 2.0])
-eta_3 = torch.stack([w_3, mu_3, var_3])
 
-x_vals = torch.tensor([1])
-n_nodes = 10
-gamma = 0.5
-noise = 0.01
+w0 = torch.tensor([1.0])
+mu0 = torch.tensor([0.0])
+var0 = torch.tensor([1.0])
+eta0 = torch.stack([w0, mu0, var0])
+
+w1 = torch.tensor([0.4, 0.2, 0.4])
+mu1 = torch.tensor([-3.0, 0.0, 3.0])
+var1 = torch.tensor([1.0, 1.0, 1.0])
+eta1 = torch.stack([w1, mu1, var1])
+
+w2 = torch.tensor([0.25, 0.25, 0.25, 0.25])
+mu2 = torch.tensor([-2.0, -1.0, 1.0, 2])
+var2 = torch.tensor([1.0, 1.0, 1.0, 1.0])
+eta2 = torch.stack([w2, mu2, var2])
+
+w3 = torch.tensor([0.15,  0.15, 0.15,  0.15, 0.15, 0.15,  0.15, 0.15])
+mu3 = torch.tensor([6.0,  3.0, -3.0, -6.0, -6,  -3.0, 3.0, 6.0])
+var3 = torch.tensor([1.0, 1.0, 1.0,  1.0, 1.0, 1.0,  1.0, 1.0])
+eta3 = torch.stack([w3, mu3, var3])
+
+xvals = torch.tensor([1])
+nnodes = 20
+nsteps = 10
+gamma_ = 1.0
+noise_ = 0.01
+margin_ = 0.1
+
+etastart = eta2
+
 
 print("===================================================================")
-print("b: ", b(n_nodes, eta_1, eta_2, eta_3, gamma, noise).size())
+# plot_test(nnodes, nsteps, etastart, eta1, eta2, noise_)
+# print("check_error: ", add_component(nnodes, etastart, eta1, eta2))
+print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, noise_))
+
+
+# TODO 
+# check warum die weights sich so komisch verhalten
+# 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + delta_P + P
+# 2) check ob der solver richtigh läuft
+# 3) check ob die Pb lösung richtig umgeformt wird
+

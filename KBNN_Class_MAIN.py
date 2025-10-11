@@ -319,11 +319,14 @@ def simpleTestNetwork(network, data, y_1, y_2, scaling):
   perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
   perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
   perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
-
+  mse = 0
   for i in range(0, data[0].size(0)):
     perceptron_Plot_static[i] = network.staticOutput(data[0][i])
     perceptron_Plot[i] = network.meanOutput(data[0][i])
     perceptron_Plot_var[i] = 2 * torch.sqrt(network.forwardPass(torch.cat((data[0][i].unsqueeze(0), torch.ones(1)), 0))[len(network.dimensions)-1][3])
+    mse += ((data[1][i] - perceptron_Plot[i])/scaling )**2
+  mse = mse/data[0].size(0)
+  print("mse Nr. : ", mse)
 
   # PLot the prediction of the BNN
   plt.plot(data[0], perceptron_Plot/scaling, label="BNN prediction", color="r")
@@ -396,7 +399,7 @@ def testNetwork(network, data):
 
 
 
-scaling = 50
+scaling = 1
 x_1 = -1
 x_2 = 1
 y_1 = 0
