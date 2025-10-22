@@ -343,7 +343,7 @@ def in_margin(n_nodes, eta_approx, eta_1, eta_2, margin):
     Input:
         n_nodes: int, number of nodes used in Gauss Hermite integration
         eta_approx: Parameters for the approximated Gauss mix
-        eta_1: Parameters for Gauss mix 2
+        eta_1: Parameters for Gauss mix 1
         eta_2: Parameters for Gauss mix 2
         margin: float, states the acceptable error
     Output:
@@ -388,7 +388,7 @@ def add_component(n_nodes, eta_approx, eta_1, eta_2):
 
     dif = (f_p - f_approx) **2
 
-    distances = (dif * gaussian_individual(nodes, eta_approx) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
+    distances = (dif.view(-1, 1) * gaussian_individual(nodes, eta_approx) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
 
     i = distances.argmax()
 
@@ -407,7 +407,7 @@ def add_component(n_nodes, eta_approx, eta_1, eta_2):
 
     return new_eta
 
-def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
+def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
     """    
     Args:
         n_nodes:
@@ -432,38 +432,38 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
 
     for i in range(n_steps):
         g = gammas[i]
-        k1 = solve_Pb(n_nodes, eta, eta_1, eta_2, g, noise)
-
-        k1[2, :] = torch.clamp(k1[2, :], min=0.01)
+        print(eta)
+        k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise)
+        print(k1)
         k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
-        k2[2, :] = torch.clamp(k2[2, :], min=0.01)
         k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
-        k3[2, :] = torch.clamp(k3[2, :], min=0.01)
         k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
-        k4[2, :] = torch.clamp(k4[2, :], min=0.01)
-
+        
         eta = eta + (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+        eta[2, :] = torch.clamp(eta[2, :], min=0.01)
 
-        #if in_margin(nnodes, etastart, eta1, eta2, margin) == False:
-        #    add_component(nnodes, etastart, eta1, eta2)
+        #if in_margin(n_nodes, eta, eta1, eta2, margin) == False:
+        #    print("HIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
+        #    eta = add_component(n_nodes, eta, eta1, eta2)
 
         f = gaussian_mixture(x, eta)
         plt.plot(x, f)
-        etas.append(eta)
+        etas.append(eta.clone().detach())
     plt.grid(True)
+    plt.ylim(-0.1, 0.3)
     plt.show()
 
     # return gammas, torch.stack(etas)
     return eta
 
-def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
-    new_eta = rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise)
-    # print(new_eta)
+def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
+    new_eta =  rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin)
+    print(new_eta)
     x = torch.linspace(-30, 30, 400)
     f_0 = gaussian_mixture(x, new_eta)
     f_1 = gaussian_mixture(x, eta_1)
     f_2 = gaussian_mixture(x, eta_2)
-    f_tild = gaussian_tilde(x, eta_1, eta_2, 1, noise)
+    f_tild = gaussian_tilde(x, eta_1, eta_2, gamma, noise)
     f_p = f_1*f_2
 
 
@@ -477,7 +477,7 @@ def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, noise):
     plt.xlabel("x")
     plt.ylabel("f(x)")
     plt.grid(True)
-    # plt.ylim(0, 0.3)
+    plt.ylim(-0.1, 0.3)
     plt.show()
 
 
@@ -492,7 +492,7 @@ var1 = torch.tensor([1.0, 1.0, 1.0])
 eta1 = torch.stack([w1, mu1, var1])
 
 w2 = torch.tensor([0.25, 0.25, 0.25, 0.25])
-mu2 = torch.tensor([-2.0, -1.0, 1.0, 2])
+mu2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
 var2 = torch.tensor([1.0, 1.0, 1.0, 1.0])
 eta2 = torch.stack([w2, mu2, var2])
 
@@ -501,20 +501,20 @@ mu3 = torch.tensor([6.0,  3.0, -3.0, -6.0, -6,  -3.0, 3.0, 6.0])
 var3 = torch.tensor([1.0, 1.0, 1.0,  1.0, 1.0, 1.0,  1.0, 1.0])
 eta3 = torch.stack([w3, mu3, var3])
 
-xvals = torch.tensor([1])
-nnodes = 20
-nsteps = 10
+xvals_ = torch.tensor([1])
+nnodes_ = 20
+nsteps_ = 10
 gamma_ = 1.0
 noise_ = 0.01
 margin_ = 0.1
 
-etastart = eta2
+etastart_ = eta2.clone().detach()
 
 
 print("===================================================================")
-# plot_test(nnodes, nsteps, etastart, eta1, eta2, noise_)
+plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
 # print("check_error: ", add_component(nnodes, etastart, eta1, eta2))
-print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, noise_))
+# print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, noise_))
 
 
 # TODO 
@@ -522,4 +522,3 @@ print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, 
 # 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + delta_P + P
 # 2) check ob der solver richtigh läuft
 # 3) check ob die Pb lösung richtig umgeformt wird
-
