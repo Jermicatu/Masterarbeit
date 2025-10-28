@@ -13,23 +13,23 @@ from torch import relu as relu
 from torch import erf as erf
 from torch import exp as exp
 
-def f1(x):
-  return 0.45 * (cos(x+1) + 1)
+#def f1(x):
+#  return 0.45 * (cos(x+1) + 1)
 
-def f2(x):
-  return 0.5 * (sig(x+1) - sig(x-1) + sig(x))
+#def f2(x):
+#  return 0.5 * (sig(x+1) - sig(x-1) + sig(x))
 
-def f3(x):
-  return cos(x)
+#def f3(x):
+#  return cos(x)
 
-def f4(x):
-  return x**3
+#def f4(x):
+#  return x**3
 
-def id(x):
-  return x
+#def id(x):
+#  return x
 
-def f5(x):
-  return torch.sum(x)
+#def f5(x):
+#  return torch.sum(x)
 
 def P_1(eta):
     """
@@ -49,16 +49,15 @@ def P_1(eta):
 
     # remember all sigmas are given in squared for (sigma**2)
     s2 = sigma_i + sigma_j
-    mu_diff = mu_i - mu_j
-
-    prefactor = (1.0 / torch.sqrt(2 * math.pi * s2)) * torch.exp(-0.5 * (mu_diff**2) / s2)
-    
-
     s2_2 = s2**2
     s2_3 = s2**3
     s2_4 = s2**4
+    
+    mu_diff = mu_i - mu_j
     md2 = mu_diff**2
     md4 = mu_diff**4
+
+    prefactor = (1.0 / torch.sqrt(2 * math.pi * s2)) * torch.exp(-0.5 * (md2) / s2)
 
     P11 = torch.ones_like(mu_diff)
     P12 = w_j * mu_diff / s2
@@ -68,7 +67,7 @@ def P_1(eta):
     P23 = w_i * w_j * torch.sqrt(sigma_j) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
     P31 = w_i * torch.sqrt(sigma_i) * (md2 - s2_2) / (s2_2)
     P32 = w_i * w_j * torch.sqrt(sigma_i) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
-    frac = md4 + 3.0 * s2 * (s2 - 2.0 * md2) / s2_4
+    frac = (md4 + 3.0 * s2 * (s2 - 2.0 * md2)) / s2_4
     P33 = w_i * w_j * torch.sqrt(sigma_i) * torch.sqrt(sigma_j) * frac
 
 
@@ -220,13 +219,13 @@ def big_M(x, eta):
     M11 = torch.zeros_like(d)
     M12 = d / (w_i * s2)
     M13 = (d2 - s2) / (w_i * s3)
-    M21 = M12
+    M21 = M12.clone().detach()
     M22 = (d2 - s2) / s4
     M23 = (d3 - 3.0 * s2 * d) / s5
-    M31 = M13
-    M32 = M23
+    M31 = M13.clone().detach()
+    M32 = M23.clone().detach()
     M33 = (d4 - 5.0 * s2 * d2 + 2.0 * s4) / s6
-    
+
     blocks = torch.stack([
       torch.stack([M11, M12, M13], dim=-1),
       torch.stack([M21, M22, M23], dim=-1),
@@ -254,7 +253,7 @@ def delta_P_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
             @param noise: float 
     Output: the integrand of delta P
     """
-    
+
     return (gaussian_mixture(x, eta_start) - gaussian_tilde(x, eta_1, eta_2, gamma, noise)).view(-1,1,1) * big_M(x, eta_start)
 
 def gh_nodes_weights(n_nodes: int):
@@ -310,11 +309,6 @@ def b_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
     """
     w_start, mu_start, sigma_start = eta_start[0], eta_start[1], eta_start[2]
     x_expanded = x.view(-1, 1)
-
-    f_i = torch.zeros(x.size(0), w_start.size(0))
-    for i in range(0, w_start.size(0)):
-      eta_i = torch.stack([w_start[i], mu_start[i], sigma_start[i]]).view(-1,1)
-      f_i[:, i] = gaussian_mixture(x, eta_i)
     
     factor = (gaussian_mix_gamma_diff(x, eta_1, gamma, noise) * gaussian_mixture(x, eta_2)).view(-1,1) * gaussian_individual(x, eta_start)
 
@@ -323,6 +317,7 @@ def b_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
     term3 = (((x_expanded - mu_start)**2 - (sigma_start)) / (sigma_start ** (3/2))) * factor
 
     stacked = torch.cat([term1.unsqueeze(0), term2.unsqueeze(0), term3.unsqueeze(0)], dim=0)
+    
     return stacked.permute(2,0,1).reshape(-1,x.size(0)).T
 
 def b(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
@@ -336,6 +331,7 @@ def solve_Pb(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     b_vec = b(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
     P_mat = P(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
 
+    # Solve Matrix equation and reshape solution to fit eta
     return torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1).view(eta_shape[::-1]).T
 
 def in_margin(n_nodes, eta_approx, eta_1, eta_2, margin):
@@ -432,9 +428,8 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
 
     for i in range(n_steps):
         g = gammas[i]
-        print(eta)
+
         k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise)
-        print(k1)
         k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
         k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
         k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
@@ -443,7 +438,6 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
         eta[2, :] = torch.clamp(eta[2, :], min=0.01)
 
         #if in_margin(n_nodes, eta, eta1, eta2, margin) == False:
-        #    print("HIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
         #    eta = add_component(n_nodes, eta, eta1, eta2)
 
         f = gaussian_mixture(x, eta)
@@ -466,6 +460,9 @@ def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
     f_tild = gaussian_tilde(x, eta_1, eta_2, gamma, noise)
     f_p = f_1*f_2
 
+    #plt.plot(x, gaussian_individual(x, eta_1)[:,0], "r--", label="f_1 part 1")
+    #plt.plot(x, gaussian_individual(x, eta_1)[:,1], "r--", label="f_1 part 2")
+    #plt.plot(x, gaussian_individual(x, eta_1)[:,2], "r--", label="f_1 part 3")
 
     plt.plot(x, f_0, label="approximation")
     plt.plot(x, f_1, label="f_1")
@@ -481,9 +478,9 @@ def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
     plt.show()
 
 
-w0 = torch.tensor([1.0])
-mu0 = torch.tensor([0.0])
-var0 = torch.tensor([1.0])
+w0 = torch.tensor([0.5, 0.5])
+mu0 = torch.tensor([1.0, -1.0])
+var0 = torch.tensor([2.0, 3.0])
 eta0 = torch.stack([w0, mu0, var0])
 
 w1 = torch.tensor([0.4, 0.2, 0.4])
@@ -501,7 +498,7 @@ mu3 = torch.tensor([6.0,  3.0, -3.0, -6.0, -6,  -3.0, 3.0, 6.0])
 var3 = torch.tensor([1.0, 1.0, 1.0,  1.0, 1.0, 1.0,  1.0, 1.0])
 eta3 = torch.stack([w3, mu3, var3])
 
-xvals_ = torch.tensor([1])
+xvals_ = torch.tensor([0, 1, 2])
 nnodes_ = 20
 nsteps_ = 10
 gamma_ = 1.0
@@ -513,12 +510,12 @@ etastart_ = eta2.clone().detach()
 
 print("===================================================================")
 plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
-# print("check_error: ", add_component(nnodes, etastart, eta1, eta2))
+# print("gaussian_mixture: ", gaussian_mixture(xvals_, eta1))
 # print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, noise_))
-
 
 # TODO 
 # check warum die weights sich so komisch verhalten
-# 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + delta_P + P
+# 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + (delta_P) + P + big_m + b_integrand + solve_Pb 
+#                                                                                     gaussian_mixture + gaussian_individual + gaussian_mix_gamma + gaussian_tilde
 # 2) check ob der solver richtigh läuft
 # 3) check ob die Pb lösung richtig umgeformt wird
