@@ -125,7 +125,8 @@ def gaussian_mix_gamma(x, eta, gamma, noise):
     variances = var[None, :]
     weights = w[None, :]
 
-    coef = 1.0 # / torch.sqrt(2 * math.pi * variances)
+    # coef = 1.0 / torch.sqrt(2 * math.pi * variances)
+    coef = 1.0
     exponent = torch.exp(-0.5 * (x - means) ** 2 / (variances*factor))
     gaussians = coef * exponent  # shape (K, L)
     # Weighted sum over components
@@ -322,14 +323,15 @@ def b_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
 
 def b(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     nodes, weights = gh_nodes_weights(n_nodes)
-    
+
     # n x m * n x 1 * n x 1
     return (b_integrand(nodes, eta_start, eta_1, eta_2, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
 
 def solve_Pb(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     eta_shape = eta_start.size()
-    b_vec = b(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
-    P_mat = P(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
+    b_vec = b(n_nodes, eta_start, eta_1, eta_2, gamma, noise) * 10
+    P_mat = P(n_nodes, eta_start, eta_1, eta_2, gamma, noise) - 1e-1 * torch.eye(b_vec.size(0))
+    # print("cond(P):", torch.linalg.cond(P_mat).item())
 
     # Solve Matrix equation and reshape solution to fit eta
     return torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1).view(eta_shape[::-1]).T
@@ -344,7 +346,7 @@ def in_margin(n_nodes, eta_approx, eta_1, eta_2, margin):
         margin: float, states the acceptable error
     Output:
         check: boolean that is true is the error is within acceptable range and false if not
-        # TODO test code
+        # TODO sollte in margin nicht auch gamma enthalten?
     """
 
     nodes, weights = gh_nodes_weights(n_nodes)
@@ -358,7 +360,7 @@ def in_margin(n_nodes, eta_approx, eta_1, eta_2, margin):
     int_approx = ((f_approx ** 2) * torch.exp(nodes**2) * weights).sum(dim=0)
 
     d = d / (int_p + int_approx)
-
+    print(d)
     if d < margin:
        check = True
     else:
@@ -411,7 +413,8 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
         eta_start:
         eta_1:
         eta_2:
-        noise    
+        noise:
+        margin:
     Returns:
         gammas: torch tensor of shape (n_steps+1,)
         etas:   torch tensor of shape (n_steps+1, n)
@@ -428,23 +431,28 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
 
     for i in range(n_steps):
         g = gammas[i]
-
+        
         k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise)
         k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
         k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
         k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
         
         eta = eta + (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+        
         eta[2, :] = torch.clamp(eta[2, :], min=0.01)
-
+        
         #if in_margin(n_nodes, eta, eta1, eta2, margin) == False:
         #    eta = add_component(n_nodes, eta, eta1, eta2)
 
         f = gaussian_mixture(x, eta)
         plt.plot(x, f)
         etas.append(eta.clone().detach())
+        # print(etas[i]-etas[i+1])
+
+        in_margin(n_nodes, eta, eta1, eta2, margin)
+    
     plt.grid(True)
-    plt.ylim(-0.1, 0.3)
+    plt.ylim(-0.1, 0.5)
     plt.show()
 
     # return gammas, torch.stack(etas)
@@ -452,6 +460,12 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
 
 def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
     new_eta =  rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin)
+
+    new_eta =  rk4_Pb(n_nodes, n_steps, new_eta, eta_1, eta_2, noise, margin)
+    new_eta =  rk4_Pb(n_nodes, n_steps, new_eta, eta_1, eta_2, noise, margin)
+    new_eta =  rk4_Pb(n_nodes, n_steps, new_eta, eta_1, eta_2, noise, margin)
+    new_eta =  rk4_Pb(n_nodes, n_steps, new_eta, eta_1, eta_2, noise, margin)
+
     print(new_eta)
     x = torch.linspace(-30, 30, 400)
     f_0 = gaussian_mixture(x, new_eta)
@@ -469,12 +483,12 @@ def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
     plt.plot(x, f_2, label="f_2")
     plt.plot(x, f_tild, label="f_tilde")
     plt.plot(x, f_p, label="f_p")
-
+    
     plt.legend()
     plt.xlabel("x")
     plt.ylabel("f(x)")
     plt.grid(True)
-    plt.ylim(-0.1, 0.3)
+    plt.ylim(-0.1, 0.5)
     plt.show()
 
 
@@ -493,29 +507,37 @@ mu2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
 var2 = torch.tensor([1.0, 1.0, 1.0, 1.0])
 eta2 = torch.stack([w2, mu2, var2])
 
-w3 = torch.tensor([0.15,  0.15, 0.15,  0.15, 0.15, 0.15,  0.15, 0.15])
-mu3 = torch.tensor([6.0,  3.0, -3.0, -6.0, -6,  -3.0, 3.0, 6.0])
-var3 = torch.tensor([1.0, 1.0, 1.0,  1.0, 1.0, 1.0,  1.0, 1.0])
+w3 = torch.tensor([0.1,   0.1,  0.1,  0.1, 0.1, 0.1,  0.1, 0.1, 0.2])
+mu3 = torch.tensor([6.0,  3.0, -3.0, -6.0, -6,  -3.0, 3.0, 6.0, 0.0])
+var3 = torch.tensor([1.0, 1.0,  1.0,  1.0, 1.0, 1.0,  1.0, 1.0, 1.0])
 eta3 = torch.stack([w3, mu3, var3])
 
 xvals_ = torch.tensor([0, 1, 2])
-nnodes_ = 20
-nsteps_ = 10
+nnodes_ = 50
+nsteps_ = 100
 gamma_ = 1.0
 noise_ = 0.01
 margin_ = 0.1
+
+
+w4 = torch.tensor([0.03, 0.03, 0.03, 0.03])
+mu4 = torch.tensor([-2.9, -1.0, 1.0, 2.9])
+var4 = torch.tensor([1.0, 1.0, 1.0, 1.0])
+eta4 = torch.stack([w4, mu4, var4])
 
 etastart_ = eta2.clone().detach()
 
 
 print("===================================================================")
 plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
-# print("gaussian_mixture: ", gaussian_mixture(xvals_, eta1))
-# print("gaussian_individual: ", b_integrand(xvals, etastart, eta1, eta2, gamma_, noise_))
+# print("b: ", b(nnodes_, etastart_, eta1, eta2, gamma_, noise_))
+
 
 # TODO 
 # check warum die weights sich so komisch verhalten
-# 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + (delta_P) + P + big_m + b_integrand + solve_Pb 
-#                                                                                     gaussian_mixture + gaussian_individual + gaussian_mix_gamma + gaussian_tilde
+# 1) check ob P und b richtig sind                                gecheckt:           P_1 + delta_P_integrand + delta_P + P + big_m + b_integrand + solve_Pb + b
+#                                                                                     gaussian_mixture + gaussian_individual + gaussian_mix_gamma + gaussian_tilde +
+#                                                                                     gaussian_mix_gamma_diff + gh_nodes_weights
 # 2) check ob der solver richtigh läuft
 # 3) check ob die Pb lösung richtig umgeformt wird
+
