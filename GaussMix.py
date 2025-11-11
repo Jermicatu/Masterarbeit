@@ -102,7 +102,7 @@ def tester4(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, mar
 
 def tester5(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
     """
-    tests P_1 by implementing a second version P_1_new and printing the norm of their difference
+    tests big_M by implementing a second version big_M_new and printing the norm of their difference
     """
     print(torch.linalg.matrix_norm(big_M_new(xvals_, eta1) - big_M(xvals_, eta1)))
 
@@ -116,6 +116,16 @@ def tester6(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, mar
         for n in range(0, 3*etastart_.size(1)):
             for m in range(0, 3*etastart_.size(1)):
                 print(delta_P_integrand(xvals_, etastart_, eta1, eta2, gamma_, noise_)[i,n,m] - big_M(xvals_, etastart_)[i,n,m] * (gaussian_mixture(xvals_, etastart_) - gaussian_tilde(xvals_, eta1, eta2, gamma_, noise_))[i])
+    return 0
+
+def tester7(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
+    """
+    tests gh_nodes_weights by runing its calculation for n=5 and compare it to predetermined values from the internet
+    """
+
+    print(gh_nodes_weights(5)[0] - torch.tensor([-2.02018, -0.958572, 0, 0.958572, 2.02018]))
+    print(gh_nodes_weights(5)[1] - torch.tensor([0.0199532, 0.393619, 0.945309, 0.393619, 0.0199532]))
+    
     return 0
 
 def gaussian_mixture(x, eta):
@@ -689,15 +699,15 @@ mu0 = torch.tensor([1.0, -1.0])
 var0 = torch.tensor([2.0, 3.0])
 eta0 = torch.stack([w0, mu0, var0])
 
-#w1 = torch.tensor([0.4, 0.2, 0.4])
-#mu1 = torch.tensor([-3.0, 0.0, 3.0])
-#var1 = torch.tensor([1., 1., 1.])
-#eta1 = torch.stack([w1, mu1, var1])
-
-w1 = torch.tensor([0.4, 0.2, 0.2, 0.1, 0.1])
-mu1 = torch.tensor([-3.0, 0.0, 3.0, 5.5, -4.3])
-var1 = torch.tensor([1.5, 1.0, 0.5, 0.1, 2.2])
+w1 = torch.tensor([0.4, 0.2, 0.4])
+mu1 = torch.tensor([-3.0, 0.0, 3.0])
+var1 = torch.tensor([1., 1., 1.])
 eta1 = torch.stack([w1, mu1, var1])
+
+#w1 = torch.tensor([0.4, 0.2, 0.2, 0.1, 0.1])
+#mu1 = torch.tensor([-3.0, 0.0, 3.0, 5.5, -4.3])
+#var1 = torch.tensor([1.5, 1.0, 0.5, 0.1, 2.2])
+#eta1 = torch.stack([w1, mu1, var1])
 
 w2 = torch.tensor([0.25, 0.25, 0.25, 0.25])
 mu2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
@@ -726,9 +736,9 @@ etastart_ = eta2.clone().detach()
 
 
 print("===================================================================")
-#plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
+plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
 
-tester6(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
+#tester7(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
 
 # print("b: ", b(nnodes_, etastart_, eta1, eta2, gamma_, noise_))
 
@@ -760,4 +770,4 @@ TODO
 2) 18ter 15 Uhr
 """
 
-# 2h 45 min
+# 3h 00 min
