@@ -90,12 +90,6 @@ def tester4(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, mar
     """
     tests P_1 by implementing a second version P_1_new and printing the norm of their difference
     """
-    # print(P_1(eta1))
-    # print(P_1_new(eta1))
-    # print(P_1_new(eta1)[0:3, 0:3] - P_1(eta1)[0:3, 0:3])
-    # print(P_1_new(eta1)[3:6, 0:3] - P_1(eta1)[3:6, 0:3])
-    # print(P_1_new(eta1)[0:3, 3:6] - P_1(eta1)[0:3, 3:6])
-    # print(P_1_new(eta1)[3:6, 3:6] - P_1(eta1)[3:6, 3:6])
     print(torch.linalg.matrix_norm(P_1_new(eta1) - P_1(eta1)))
 
     return 0
@@ -104,8 +98,10 @@ def tester5(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, mar
     """
     tests big_M by implementing a second version big_M_new and printing the norm of their difference
     """
+    print(big_M(xvals_, eta1).size())
+    print(big_M_new(xvals_, eta1).size())
     print(torch.linalg.matrix_norm(big_M_new(xvals_, eta1) - big_M(xvals_, eta1)))
-
+    print((big_M_new(xvals_, eta1).transpose(1,2) == big_M_new(xvals_, eta1)).all())
     return 0
 
 def tester6(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
@@ -126,6 +122,56 @@ def tester7(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, mar
     print(gh_nodes_weights(5)[0] - torch.tensor([-2.02018, -0.958572, 0, 0.958572, 2.02018]))
     print(gh_nodes_weights(5)[1] - torch.tensor([0.0199532, 0.393619, 0.945309, 0.393619, 0.0199532]))
     
+    return 0
+
+def tester8(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
+    """
+    tests b_integrand by implementing a second version b_integrand_new and printing the norm of their difference
+    """
+    print(torch.linalg.vector_norm(b_integrand(xvals_, etastart_, eta1, eta2, gamma_, noise_) - b_integrand_new(xvals_, etastart_, eta1, eta2, gamma_, noise_)))
+    return 0
+
+def tester9(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
+    """
+    tests the integration via gh_nodes_weights by applying it to a gaussian mix that should yield a number close to 1
+    """
+    nodes, weights = gh_nodes_weights(nnodes_)
+    print((gaussian_mixture(nodes, etastart_) * torch.exp(nodes**2) * weights).sum(dim=0))
+    return 0
+
+def tester10(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
+    """
+    tests the b function by implementing a different integration and printing the norm of their difference
+    """
+    nodes, weights = gh_nodes_weights(nnodes_)
+    b_int = b_integrand(nodes, etastart_, eta1, eta2, gamma_, noise_)
+    m = b_int.size(0)
+    n = b_int.size(1)
+    b_new = torch.zeros(n)
+    for i in range(0, n):
+        for j in range(0, m):
+            b_new[i] = b_new[i] + b_int[j,i] * torch.exp(nodes[j]**2) * weights[j]
+
+    print(torch.linalg.vector_norm(b_new - b(nnodes_, etastart_, eta1, eta2, gamma_, noise_)))
+    return 0
+
+def tester11(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_):
+    """
+    tests torch.linalg.solve by checking if P * solution = b
+    then tests if solve_Pb outputs the right structure of the eta output 
+    """
+    P_mat = P(nnodes_, etastart_, eta1, eta2, gamma_, noise_)
+    b_vec = b(nnodes_, etastart_, eta1, eta2, gamma_, noise_)
+    sol = torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(1)
+
+    n = int(sol.size(0)/3)
+    new_eta = torch.zeros(3, n)
+    for i in range(0,n):
+        new_eta[0, i] = sol[3*i    ]
+        new_eta[1, i] = sol[3*i + 1]
+        new_eta[2, i] = sol[3*i + 2]
+    print(new_eta - solve_Pb(nnodes_, etastart_, eta1, eta2, gamma_, noise_))
+
     return 0
 
 def gaussian_mixture(x, eta):
@@ -171,8 +217,8 @@ def gaussian_mix_gamma(x, eta, gamma, noise):
     variances = var[None, :]
     weights = w[None, :]
 
-    # coef = 1.0 / torch.sqrt(2. * math.pi * variances)
-    coef = 1.0
+    coef = 1.0 / torch.sqrt(2. * math.pi * variances)
+    # coef = 1.0
     exponent = torch.exp(-0.5 * (x - means) ** 2. / (variances*factor))
     gaussians = coef * exponent  # shape (K, L)
     # Weighted sum over components
@@ -356,7 +402,7 @@ def big_M_new(x, eta):
 
         bigM[:, 3*i    , 3*i + 1] = factor * d / (w[i] * s2)
         #print(bigM[:, 3*i    , 3*i + 1])
-        bigM[:, 3*i    , 3*i + 2] = factor *(d2 - s2) / (w[i] * s3)
+        bigM[:, 3*i    , 3*i + 2] = factor * (d2 - s2) / (w[i] * s3)
         #print(bigM[:, 3*i    , 3*i + 2])
 
         bigM[:, 3*i + 1, 3*i    ] = bigM[:, 3*i    , 3*i + 1]
@@ -485,6 +531,29 @@ def P(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     """
     return P_1(eta_start) + delta_P(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
 
+def b_integrand_new(x, eta_start, eta_1, eta_2, gamma, noise):#
+    """
+    just for testing b_integrand
+    """
+    w_start, mu_start, sigma_start = eta_start[0], eta_start[1], eta_start[2]
+
+    n = w_start.size(0)
+    m = x.size(0)
+    b = torch.zeros(m, 3*n)
+
+    f_1_dif = gaussian_mix_gamma_diff(x, eta_1, gamma, noise)
+    f_2 = gaussian_mixture(x, eta_2)
+    f_individual = gaussian_individual(x, eta_start)
+
+    for j in range(0,m):
+        for i in range (0,n):
+            factor = f_1_dif[j] * f_2[j] * f_individual[j, i]
+            b[j, 3*i    ] = factor * (w_start[i]**(-1))
+            b[j, 3*i + 1] = factor * (x[j] - mu_start[i])/sigma_start[i]
+            b[j, 3*i + 2] = factor * ((x[j] - mu_start[i])**2 - sigma_start[i]) / (sigma_start[i] ** (3/2))
+
+    return b
+
 def b_integrand(x, eta_start, eta_1, eta_2, gamma, noise):
     """
     Input:  @param x: one dimensional tensor stating the x-values for which we want an output
@@ -519,7 +588,8 @@ def solve_Pb(n_nodes, eta_start, eta_1, eta_2, gamma, noise):
     b_vec = b(n_nodes, eta_start, eta_1, eta_2, gamma, noise)
     P_mat = P(n_nodes, eta_start, eta_1, eta_2, gamma, noise) # + 1e-1 * torch.eye(b_vec.size(0))
     # print("cond(P):", torch.linalg.cond(P_mat).item())
-
+    # print(torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(1))
+    
     # Solve Matrix equation and reshape solution to fit eta
     return torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1).view(eta_shape[::-1]).T
 
@@ -592,6 +662,34 @@ def add_component(n_nodes, eta_approx, eta_1, eta_2):
 
     return new_eta
 
+def backward_euler(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
+    dgamma = 1 / n_steps
+    gammas = np.linspace(0, 1, n_steps + 1)
+
+    eta = eta_start.clone().detach()
+    etas = [eta.clone().detach()]
+
+    for n in range(n_steps):
+        gamma_next = gammas[n+1]
+        # Predictor: use forward Euler as initial guess
+        rhs_n = solve_Pb(n_nodes, eta, eta_1, eta_2, gammas[n], noise)
+        eta_next = eta + dgamma * rhs_n
+
+        # Newton iteration for implicit correction
+        max_iter = 20
+        for _ in range(max_iter):
+            rhs_next = solve_Pb(n_nodes, eta_next, eta_1, eta_2, gamma_next, noise)
+            F = eta_next - eta - dgamma * rhs_next  # residual
+            if np.linalg.norm(F) < 1e-8:
+                break
+            # Simple fixed-point iteration (or approximate Newton)
+            eta_next -= F  # can replace by smarter update if you can compute Jacobian
+
+        eta = eta_next
+        etas.append(eta.clone().detach())
+
+    return etas[-1]
+
 def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
     """    
     Args:
@@ -620,28 +718,13 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
         g = gammas[i]
         
         k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise)
-        #k1 *= torch.sign(eta[1, :])
         k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
-        #k2 *= torch.sign(eta[1, :])
         k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
-        #k3 *= torch.sign(eta[1, :])
         k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
-        #k4 *= torch.sign(eta[1, :])
+        
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
       
         # change = change * torch.sign(change[1, :])
-
-        # change[:, :2] *= -1   
-
-        #change[:, 1].copy_(change[:, 2])
-        #change[:, 0].copy_(change[:, 3])
-        #change[1, 0] *= -1
-        #change[1, 1] *= -1
-        
-        #change[:, 2].copy_(change[:, 1])
-        #change[:, 3].copy_(change[:, 0])
-        #change[1, 2] *= -1
-        #change[1, 3] *= -1
 
         print(change)
 
@@ -666,19 +749,16 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
     return eta
 
 def plot_test(n_nodes, n_steps, eta_start, eta_1, eta_2, gamma, noise, margin):
+    #new_eta =  backward_euler(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin)
     new_eta =  rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin)
 
-    print(new_eta)
+    # print(new_eta)
     x = torch.linspace(-30, 30, 400)
     f_0 = gaussian_mixture(x, new_eta)
     f_1 = gaussian_mixture(x, eta_1)
     f_2 = gaussian_mixture(x, eta_2)
     f_tild = gaussian_tilde(x, eta_1, eta_2, gamma, noise)
     f_p = f_1*f_2
-
-    #plt.plot(x, gaussian_individual(x, eta_1)[:,0], "r--", label="f_1 part 1")
-    #plt.plot(x, gaussian_individual(x, eta_1)[:,1], "r--", label="f_1 part 2")
-    #plt.plot(x, gaussian_individual(x, eta_1)[:,2], "r--", label="f_1 part 3")
 
     plt.plot(x, f_0, label="approximation")
     plt.plot(x, f_1, label="f_1")
@@ -734,11 +814,22 @@ eta4 = torch.stack([w4, mu4, var4])
 
 etastart_ = eta2.clone().detach()
 
+w1_2 = torch.tensor([1.])
+mu1_2 = torch.tensor([1.])
+var1_2 = torch.tensor([2.])
+eta1_2 = torch.stack([w1_2, mu1_2, var1_2])
+
+w2_2 = torch.tensor([1.])
+mu2_2 = torch.tensor([1.])
+var2_2 = torch.tensor([0.5])
+eta2_2 = torch.stack([w2_2, mu2_2, var2_2])
+
+etastart_2 = eta2_2.clone().detach()
 
 print("===================================================================")
-plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
+# plot_test(nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
 
-#tester7(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
+tester2(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_)
 
 # print("b: ", b(nnodes_, etastart_, eta1, eta2, gamma_, noise_))
 
@@ -770,4 +861,7 @@ TODO
 2) 18ter 15 Uhr
 """
 
-# 3h 00 min
+# 11h 10 min
+
+# QUESTION
+# 1) is the order of eta from solve_Pb corret?
