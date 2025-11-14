@@ -1,18 +1,7 @@
 import torch
 import math
 import matplotlib.pyplot as plt
-import time
 import numpy as np
-import random
-
-
-from torch import tanh as tanh
-from torch import cos as cos
-from torch import sigmoid as sig
-from torch import relu as relu
-from torch import erf as erf
-from torch import exp as exp
-
 
 class GaussMixProduct:
     mix1 = None
@@ -28,9 +17,9 @@ class GaussMixProduct:
         return sol1 * sol2
 
 class GaussMix:
-    w = []
-    m = []
-    s = []
+    w = None
+    m = None
+    s = None
 
     def __init__(self, weight, mean, sigma):
         """
@@ -43,12 +32,41 @@ class GaussMix:
         if sigma.dim() != 1:
             raise AttributeError("dimension of sigma is not one!")
         if not (weight.size(0) == mean.size(0) and weight.size(0) == sigma.size(0)):
-            raise AttributeError("inputs have not the same length!")
+            raise AttributeError("inputs don't have the same length!")
 
         self.w = weight
         self.m = mean
         self.s = sigma
+
+    def __add__(self, other):
+        if not isinstance(other, GaussMix):
+            return None # NotImplementedError
+        if self.w.size(0) != other.w.size(0):
+            raise AttributeError("Gauss mixes don't have the same length!")
         
+        return GaussMix(self.w + other.w, self.m + other.m, self.s + other.s)
+    
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __mul__(self, other):
+        if type(other) == int or type(other) == float or type(other):
+            return GaussMix(self.w * other, self.m * other, self.s * other)
+        else:
+            return NotImplementedError
+        
+    def __rmul__(self, other):
+        return self.__mul__(other)
+        
+    def split(self, position):
+        if type(position) != int:
+            return NotImplementedError
+        if position > self.w.size(0):
+            raise AttributeError("Can't split there! Postition is larger than the size of the Gauss mix!")
+        
+        return NotImplementedError
+        # TODO
+
     def eval(self, x):
         """
         Input:  @param x: one dimensional tensor stating the x-values for which we want an output
@@ -125,7 +143,6 @@ class GaussMix:
         gaussians = coef * exponent 
 
         return (w_ * gaussians).sum(dim=1)
-
 
 if __name__ == "__main__":
     """
