@@ -33,7 +33,7 @@ def backward_euler(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         gamma_next = gammas[n+1]
         # Predictor: use forward Euler as initial guess
         rhs_n = solve_Pb(n_nodes, mix, mix_product, gammas[n], noise)
-        mix_next = eta + dgamma * rhs_n
+        mix_next = mix + dgamma * rhs_n
 
         # Newton iteration for implicit correction
         max_iter = 20
@@ -55,6 +55,10 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
     gammas = torch.linspace(0, 1, n_steps+1)
     mix = mix_start
 
+    x = torch.linspace(-30, 30, 400)
+    f = mix_start.eval(x)
+    plt.plot(x, f)
+
     for i in range(n_steps):
         g = gammas[i]
         k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
@@ -65,10 +69,17 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
         
         mix = mix + change # NO CLAMP MIGHT LEAD TO ERROR
+
+        f = mix.eval(x)
+        plt.plot(x, f)
             
         #if in_margin(n_nodes, eta, eta1, eta2, margin) == False:
         #    eta = add_component(n_nodes, eta, eta1, eta2)
         # TODO
+
+    plt.grid(True)
+    plt.ylim(-0.1, 0.5)
+    plt.show()
 
     return mix
 
@@ -90,8 +101,6 @@ if __name__ == "__main__":
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
-
-    print("HIIIIIIIIIIIIIIIIIIII")
 
     new_mix =  rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
 

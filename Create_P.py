@@ -42,7 +42,7 @@ def big_M(x, mix_start):
     s5 = s4*s
     s6 = s2**3
 
-    d = x_i - mu_i                   # (K,L)
+    d = x_i - mu_i
     d2 = d * d
     d3 = d * d2
     d4 = d2 * d2
@@ -63,10 +63,14 @@ def big_M(x, mix_start):
     torch.stack([M31, M32, M33], dim=-1),
     ], dim=-2)
 
-    f = mix_start.eval(x).reshape(-1, 1, 1, 1)
+    #f = mix_start.eval(x).reshape(-1, 1, 1, 1)
+
+    f = mix_start.eval_individual(x)
         
-    blocks = blocks * f
-        
+    #blocks = blocks * f
+    
+    blocks = blocks * f[:, :, None, None]
+
     bigM = torch.zeros((K, L, L, 3, 3), dtype=blocks.dtype, device=blocks.device)
     diag_idx = torch.arange(L, device=blocks.device)
     bigM[:, diag_idx, diag_idx] = blocks
@@ -145,9 +149,13 @@ def P_1(mix):
         torch.stack([P21, P22, P23], dim=-1),
         torch.stack([P31, P32, P33], dim=-1)
     ], dim=-2)
-
+    
     blocks = blocks * prefactor[..., None, None]
+    
+    print(blocks[:,:,1,1])
     P_1 = blocks.permute(0, 2, 1, 3).reshape(3*N, 3*N)
+    print(torch.all(P_1.transpose(0, 1) == P_1))
+    print(P_1[3,3])
 
     return P_1
 

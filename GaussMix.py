@@ -854,14 +854,13 @@ tester2(xvals_, nnodes_, nsteps_, etastart_, eta1, eta2, gamma_, noise_, margin_
 5) Macht es was ich will
 6) Einheitliche Dimensionen sind sehr gefährlich (Alle abändern wenn man schon dabei ist)
 
-
 TODO
 
 1) Code debuggen / erneuern
 2) 18ter 15 Uhr
 """
 
-# 15h 40 min
+# 25h 00 min
 
 # QUESTION
 # 1) is the order of eta from solve_Pb corret?
