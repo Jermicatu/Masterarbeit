@@ -97,7 +97,7 @@ class GaussMix:
         f_i = torch.zeros(x.size(0), self.w.size(0))
         for i in range(0,x.size(0)):
             for j in range(0, self.w.size(0)):
-                f_i[i, j] = self.w[j] * math.exp(-0.5 * (x[i] - self.m[j])**2 /self.s[j]) / math.sqrt(2 * math.pi * self.s[j])
+                f_i[i, j] = self.w[j] * math.exp(-0.5 * (x[i] - self.m[j])**2 / self.s[j]) / math.sqrt(2 * math.pi * self.s[j])
         
         return f_i
     
@@ -116,7 +116,7 @@ class GaussMix:
         s_ = self.s[None, :]
         w_ = self.w[None, :]
 
-        coef = 1.0 / torch.sqrt(2. * math.pi * s_)
+        # coef = 1.0 / torch.sqrt(2. * math.pi * s_)
         coef = 1.0
         exponent = torch.exp(-0.5 * (x - m_) ** 2. / (s_ * factor))
         gaussians = coef * exponent
@@ -138,7 +138,7 @@ class GaussMix:
         s_ = self.s[None, :]
         w_ = self.w[None, :]
 
-        coef = (noise - gamma) * (x - m_) / (((1 + noise)**2 * s_) * torch.sqrt(2. * math.pi * s_))
+        coef = (noise - gamma) * (x - m_) / ((1 + noise)**2 * s_) # * torch.sqrt(2. * math.pi * s_))
         exponent = torch.exp(-0.5 * (x - m_) ** 2 / (s_*factor))
         gaussians = coef * exponent 
 

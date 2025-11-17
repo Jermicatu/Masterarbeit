@@ -71,12 +71,16 @@ def big_M(x, mix_start):
     
     blocks = blocks * f[:, :, None, None]
 
-    bigM = torch.zeros((K, L, L, 3, 3), dtype=blocks.dtype, device=blocks.device)
+    M = torch.zeros((K, L, L, 3, 3), dtype=blocks.dtype, device=blocks.device)
     diag_idx = torch.arange(L, device=blocks.device)
-    bigM[:, diag_idx, diag_idx] = blocks
-    bigM = bigM.permute(0, 1, 3, 2, 4).reshape(K, 3*L, 3*L)
+    M[:, diag_idx, diag_idx] = blocks
+    M = M.permute(0, 1, 3, 2, 4).reshape(K, 3*L, 3*L)
+    
+    for i in range(0, M.size(0)):
+        if not torch.allclose(M[i].transpose(0, 1), M[i]):
+            raise ValueError("M[i] Matrix is not symmetric.")
 
-    return bigM
+    return M
 
 def delta_P_integrand(x, mix_start, mix_product, gamma, noise):
     """
@@ -112,6 +116,82 @@ def P_1(mix):
     """
     # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
 
+    L = mix.w.size(0)
+    mu_i = mix.m[:, None]
+    mu_j = mix.m[None, :]
+    sigma_i = mix.s[:, None]
+    sigma_j = mix.s[None, :]
+    w_i = mix.w[:, None]
+    w_j = mix.w[None, :]
+
+    # remember all sigmas are given in squared for (sigma**2)
+    s2 = sigma_i + sigma_j
+    s2_2 = s2**2
+    s2_3 = s2**3
+    s2_4 = s2**4
+        
+    mu_diff = mu_i - mu_j
+    md2 = mu_diff**2
+    md4 = mu_diff**4
+
+    prefactor = (1.0 / torch.sqrt(2 * math.pi * s2)) * torch.exp(-0.5 * (md2) / s2)
+
+    P11 = torch.ones_like(mu_diff)
+    P12 = w_j * mu_diff / s2
+    P13 = w_j * torch.sqrt(sigma_j) * (md2 - s2_2) / (s2_2)
+    P21 = w_i * (-mu_diff) / s2
+    P22 = w_i * w_j * (s2 - md2) / (s2_2)
+    P23 = w_i * w_j * torch.sqrt(sigma_j) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
+    P31 = w_i * torch.sqrt(sigma_i) * (md2 - s2_2) / (s2_2)
+    P32 = w_i * w_j * torch.sqrt(sigma_i) * (mu_diff) * (md2 - 3 * s2) / (s2_3)
+    frac = (md4 + 3.0 * s2 * (s2 - 2.0 * md2)) / s2_4
+    P33 = w_i * w_j * torch.sqrt(sigma_i) * torch.sqrt(sigma_j) * frac
+
+    P_1 = torch.zeros(3 * L, 3 * L)
+
+    for i in range(0, L):
+        for j in range(0, L):
+            P_1[3*i    , 3*j    ] = prefactor[i, j] * P11[i, j]
+            P_1[3*i    , 3*j + 1] = prefactor[i, j] * P12[i, j]
+            P_1[3*i    , 3*j + 2] = prefactor[i, j] * P13[i, j]
+
+            P_1[3*i + 1, 3*j    ] = prefactor[i, j] * P21[i, j]
+            P_1[3*i + 1, 3*j + 1] = prefactor[i, j] * P22[i, j]
+            P_1[3*i + 1, 3*j + 2] = prefactor[i, j] * P23[i, j]
+            
+            P_1[3*i + 2, 3*j    ] = prefactor[i, j] * P31[i, j]
+            P_1[3*i + 2, 3*j + 1] = prefactor[i, j] * P32[i, j]
+            P_1[3*i + 2, 3*j + 2] = prefactor[i, j] * P33[i, j]
+
+
+    #print(torch.allclose(prefactor.transpose(0, 1), prefactor))
+    #print(torch.allclose(P11.transpose(0, 1), P11))
+    #print(torch.allclose(P12.transpose(0, 1), P21))
+    #print(torch.allclose(P13.transpose(0, 1), P31))
+    #print(torch.allclose(P22.transpose(0, 1), P22))
+    #print(torch.allclose(P23.transpose(0, 1), P32))
+    #print(torch.allclose(P31.transpose(0, 1), P13))
+    #print(torch.allclose(P33.transpose(0, 1), P33))
+
+    if not (P_1.size(0) == 3*L and P_1.size(1) == 3*L):
+        raise ValueError("P_1 Matrix is not of size (3*L, 3*L).")
+    
+    if not torch.allclose(P_1.transpose(0, 1), P_1):
+        raise ValueError("P_1 Matrix is not symmetric.")
+    
+    #eigs = torch.linalg.eigvalsh(P_1)
+    #if (eigs < -1e-1).any():
+    #    raise ValueError("P_1 is not PSD!")
+    
+    return P_1
+
+def P_1_old(mix):
+    """
+    Input:  @param eta: two dimensional tensor of form [w, mu, sigma]
+    Output: matrix tensor representing P_1
+    """
+    # assert torch.allclose(w.sum(), torch.tensor(1.0, dtype=w.dtype, device=w.device)), f"w must sum to 1, but got {w.sum().item()}"
+
     N = mix.m.shape[0]
     mu_i = mix.m[:, None]
     mu_j = mix.m[None, :]
@@ -137,7 +217,7 @@ def P_1(mix):
     P13 = w_j * torch.sqrt(sigma_j) * (md2 - s2_2) / (s2_2)
     P21 = w_i * (-mu_diff) / s2
     P22 = w_i * w_j * (s2 - md2) / (s2_2)
-    P23 = w_i * w_j * torch.sqrt(sigma_j) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
+    P23 = w_i * w_j * torch.sqrt(sigma_j) * (mu_diff) * (md2 - 3 * s2) / (s2_3)
     P31 = w_i * torch.sqrt(sigma_i) * (md2 - s2_2) / (s2_2)
     P32 = w_i * w_j * torch.sqrt(sigma_i) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
     frac = (md4 + 3.0 * s2 * (s2 - 2.0 * md2)) / s2_4
