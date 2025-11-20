@@ -33,17 +33,17 @@ def backward_euler(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         gamma_next = gammas[n+1]
         # Predictor: use forward Euler as initial guess
         rhs_n = solve_Pb(n_nodes, mix, mix_product, gammas[n], noise)
-        mix_next = eta + dgamma * rhs_n
+        mix_next = mix + dgamma * rhs_n
 
         # Newton iteration for implicit correction
         max_iter = 20
         for _ in range(max_iter):
             rhs_next = solve_Pb(n_nodes, mix_next, mix_product, gamma_next, noise)
-            F = mix_next - mix - dgamma * rhs_next  # residual
-            if np.linalg.norm(F) < 1e-8:
+            F = mix_next + (-1)*mix + (-1)*dgamma * rhs_next  # residual
+            if np.linalg.norm(F.w) < 1e-8 and np.linalg.norm(F.m) < 1e-8 and np.linalg.norm(F.s) < 1e-8:
                 break
             # Simple fixed-point iteration (or approximate Newton)
-            mix_next -= F  # can replace by smarter update if you can compute Jacobian
+            mix_next = mix_next + (-1)*F  # can replace by smarter update if you can compute Jacobian
 
         mix = mix_next
 
@@ -60,12 +60,14 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
         k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)
         k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)
-        k4 = solve_Pb(n_nodes, mix + h * k3,     mix_product, g + h,   noise)
+        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
         
-        mix = mix + change # NO CLAMP MIGHT LEAD TO ERROR
-            
+        mix = mix + change 
+
+        # mix.s = torch.clamp(mix.s, min = 0.01)
+
         #if in_margin(n_nodes, eta, eta1, eta2, margin) == False:
         #    eta = add_component(n_nodes, eta, eta1, eta2)
         # TODO
@@ -89,13 +91,10 @@ if __name__ == "__main__":
     margin = 0.1
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
-    mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
-
-    print("HIIIIIIIIIIIIIIIIIIII")
+    mix_product = GaussMixClass.GaussMixProduct(w2, m2, s2, w1, m1, s1)
 
     new_mix =  rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
 
-    # print(new_eta)
     x = torch.linspace(-30, 30, 400)
     f_0 = new_mix.eval(x)
     f_1 = mix_product.mix1.eval(x)

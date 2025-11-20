@@ -45,8 +45,8 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
     term2 = ((x_expanded - m_start) / s_start ) * factor
     term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
-    #stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
-    #
+    stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
+    
     #for i in range(0, term1.size(0)):
     #    for j in range(0, term1.size(1)):
     #        stacked_new[i, 3*j    ] = term1[i,j]
@@ -54,5 +54,7 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     #        stacked_new[i, 3*j + 2] = term3[i,j]
 
     stacked = torch.cat([term1.unsqueeze(0), term2.unsqueeze(0), term3.unsqueeze(0)], dim=0)
+
+    #print(stacked_new - stacked.permute(2,0,1).reshape(-1,x.size(0)).T)
         
     return stacked.permute(2,0,1).reshape(-1,x.size(0)).T

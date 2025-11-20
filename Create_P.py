@@ -141,9 +141,9 @@ def P_1(mix):
     P13 = w_j * torch.sqrt(sigma_j) * (md2 - s2_2) / (s2_2)
     P21 = w_i * (-mu_diff) / s2
     P22 = w_i * w_j * (s2 - md2) / (s2_2)
-    P23 = w_i * w_j * torch.sqrt(sigma_j) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
+    P23 = w_i * w_j * torch.sqrt(sigma_j) * (mu_diff) * (md2 - 3 * s2) / (s2_3)
     P31 = w_i * torch.sqrt(sigma_i) * (md2 - s2_2) / (s2_2)
-    P32 = w_i * w_j * torch.sqrt(sigma_i) * (mu_diff) * (md2 - 3 * s2) / (s2_3)
+    P32 = w_i * w_j * torch.sqrt(sigma_i) * (-mu_diff) * (md2 - 3 * s2) / (s2_3)
     frac = (md4 + 3.0 * s2 * (s2 - 2.0 * md2)) / s2_4
     P33 = w_i * w_j * torch.sqrt(sigma_i) * torch.sqrt(sigma_j) * frac
 
