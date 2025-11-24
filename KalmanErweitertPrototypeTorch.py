@@ -9,7 +9,16 @@ from torch import sigmoid as sig
 from torch import relu as relu
 
 def f(x):
-  return 2 * (sig(x+1))
+  return 0.45 * (cos(x+1) + 1)
+
+def f2(x):
+  return 0.5 * (sig(x+1) - sig(x-1) + sig(x))
+
+def f3(x):
+  # This is the solution I get atm for input:
+  # generateData(f2, -5, 5, 1000)
+  # createNetwork(1, [1, 5, 1], [id, sig, id])
+  return 0.9909 + 0.9314*sig(-0.0449 + 0.3354*(2.0819 + 0.4314*x)) + 0.0788*sig(-0.2070 + 0.7271*(2.0819 + 0.4314*x)) - 4.7324*sig(0.6283 + 0.8665*(2.0819 + 0.4314*x)) + 7.8592*sig(-0.0109 + 0.8920*(2.0819 + 0.4314*x)) - 4.4519*sig(0.0993 + 0.7585*(2.0819 + 0.4314*x))
 
 def id(x):
   return x
@@ -50,7 +59,6 @@ def forwardPass(network, x):
   """
   forwardPassData = [None] * len(network)
 
-  # TODO check if bias is missing
   m_z_old = x
   s_z_old = torch.zeros(m_z_old.size(0), m_z_old.size(0), dtype=torch.float64)
 
@@ -77,20 +85,12 @@ def forwardPass(network, x):
       if f == id:
         m_z_new = m_a
         s_z_new = s_a
-      if f == tanh:
-        a_var = s_a[j][j]
-        a_mean = m_a[j]
-        l = math.sqrt(math.pi/8)
-        t = math.sqrt(1 + (l**2) * a_var)
-        m_z_new[j] = 2 * sig(2 * a_mean / t) - 1
-        s_z_new[j][j] = max((1 / t) * (m_z_new[j] + 1) * m_z_new[j] + m_z_new[j] * (1 - m_z_new[j])  + 10**(-6), torch.tensor([10**(-6)], dtype=torch.float64))
-        # TODO
 
     m_z_old = torch.cat((torch.tensor([1], dtype=torch.float64), m_z_new), 0)
     s_z_old = torch.block_diag(torch.tensor([[0]], dtype=torch.float64), s_z_new) # variance of bias is zero
     forwardPassData[i] = [m_a, s_a, m_z_new, s_z_new]
-    print("m_a: ", m_a)
-    print("m_z_new: ", m_z_new)
+    #print("m_a: ", m_a)
+    #print("m_z_new: ", m_z_new)
 
     #m_z_old = torch.cat((torch.tensor([1], dtype=torch.float64), m_z_new), 0)
     #s_z_old = torch.block_diag(torch.tensor([[0]], dtype=torch.float64), s_z_new)
@@ -146,24 +146,16 @@ def backwardPass(network, data):
             t = math.sqrt(1 + (l**2) * s_a_minus[n][n])
             cov_a_z[n] = ((l * s_a_minus[n][n]) / t) * (1 / math.sqrt(2 * math.pi)) * math.exp(-((l * m_a_minus[n].item() / t)**2) / 2)
           elif f == id:
-            cov_a_z[n] = 1
-          if f == tanh:
-            cov_a_z[n] = 2 * ((l * 2*2*s_a_minus[n][n]) / t) * (1 / math.sqrt(2 * math.pi)) * math.exp(-((l * 2 * m_a_minus[n].item() / t)**2) / 2) - 2 * m_a_minus[n] - sig(2 * m_a_minus[n] / t) * m_a_minus[n]
-            
-            # s_ya 	= E{a*tanh(a)} - m_y*m_a
-	          # = E{a*2*s(2*a)-a} - m_y*m_a
-	          # = 2*E{a*s(2*a)} - m_a - [2*s(2*m_a/t)-1]*m_a
-	          # = 2[E{a*s(2*a)} - s(2*m_a/t)*m_a] - 2*m_a - s(2*m_a/t)*m_a
-	          # = 2*s_y2a(sigmoid) - 2*m_a - s(2*m_a/t)*m_a
-        
-        print((i, j))
-        k_n = torch.matmul(torch.inverse(s_z_minus), cov_a_z).unsqueeze(0).mT
+            cov_a_z[n] = s_a_minus[n][n]
+
+        # print((i, j))
+        k_n = 0.9 * torch.matmul(torch.inverse(s_z_minus), cov_a_z).unsqueeze(0).mT
         m_a_plus[j] = m_a_minus[j] + torch.matmul(k_n.mT, (m_z_plus - m_z_minus)).squeeze(0)
         s_a_plus[j][j] = max(s_a_minus[j][j] + torch.matmul(torch.matmul(k_n.mT, (s_z_plus - s_z_minus)), k_n) + 10**(-6), 10**(-6))
-        print("cov_a_z: ", cov_a_z)
-        print("k_n: ", k_n)
-        print("s_a_plus: ", s_a_plus)
-        print("s_z_minus: ", s_z_minus)
+        #print("cov_a_z: ", cov_a_z)
+        #print("k_n: ", k_n)
+        #print("s_a_plus: ", s_a_plus)
+        #print("s_z_minus: ", s_z_minus)
         
         if j==0:
           C_wza_top = torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT)
@@ -171,8 +163,8 @@ def backwardPass(network, data):
           m_w_big = m_w
           s_w_big = s_w
         else:
-          print(C_wza_bot)
-          print(torch.matmul(s_z_minus_prev, m_w.unsqueeze(0).mT))
+          #print(C_wza_bot)
+          #print(torch.matmul(s_z_minus_prev, m_w.unsqueeze(0).mT))
           C_wza_top = torch.block_diag(C_wza_top, torch.matmul(s_w, m_z_minus_prev.unsqueeze(0).mT))
           C_wza_bot = torch.cat((C_wza_bot, torch.matmul(s_z_minus_prev, m_w.unsqueeze(0).mT)),1)
           m_w_big = torch.cat((m_w_big, m_w), 0)
@@ -181,8 +173,8 @@ def backwardPass(network, data):
       C_wza = torch.cat((C_wza_top, C_wza_bot), 0)
       L = torch.matmul(C_wza, torch.inverse(s_a_minus))
       
-      print(torch.cat((m_w_big, m_z_minus_prev), 0))
-      print(torch.matmul(L, (m_a_plus - m_a_minus)))
+      #print(torch.cat((m_w_big, m_z_minus_prev), 0))
+      #print(torch.matmul(L, (m_a_plus - m_a_minus)))
 
       m_big = torch.cat((m_w_big, m_z_minus_prev), 0) + torch.matmul(L, (m_a_plus - m_a_minus))
       c_big = torch.block_diag(s_w_big, s_z_minus_prev) + torch.matmul(torch.matmul(L, (s_a_plus - s_a_minus)), L.mT)
@@ -226,10 +218,14 @@ def createNetwork(input_size, network_size, functions):
   return network
 
 def staticNetworkOutput(network, x):
-  # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  """
+  Input:  @param network: network, created by the createNetwork function
+          @param x: vector, input for the network
+  Output: @output y: vector, the approximation from our network
+  """
   if len(x.size()) == 0:
     x = x.unsqueeze(0)
-  x = torch.tensor(x.clone().detach(), dtype=torch.float64)
+  x = torch.tensor(x.clone().detach(), dtype=torch.float64) # TODO x = x.float()
   # iterate through each layer
   for i in range(0, len(network)):
     # iterate through each perceptron
@@ -240,17 +236,30 @@ def staticNetworkOutput(network, x):
     x = y
   return y
 
-data = generateData(sig, -3, 3, 100)
-network = createNetwork(1, [1], [id])
+torch.manual_seed(10)
+data = generateData(f2, -5, 5, 1000)
+network = createNetwork(1, [1, 5, 1], [id, sig, id])
 print("network: ", network)
-network = backwardPass(network, data)
-print("network: ", network)
-W_variance = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+plt.plot(data[0], data[1], label = "f")
 
-perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
+for k in range(1, 11):
+  network = backwardPass(network, data)
+  perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
+  mse = 0
+  # print("network ", k, " : ", network)
+  for i in range(0, data[0].size(0)):
+    perceptron_Plot[i] = staticNetworkOutput(network , data[0][i])
+    mse += (data[1][i] - perceptron_Plot[i])**2
+  mse = mse/data[0].size(0)
+  print("mse: ", mse)
+  plt.plot(data[0], perceptron_Plot, label='approx Nr. {k}'.format(k=k))
+
+myPrediction = torch.zeros(data[0].size(0), dtype=torch.float64)
 for i in range(0, data[0].size(0)):
-  perceptron_Plot[i] = staticNetworkOutput(network , data[0][i])
+  myPrediction[i] = f2(data[0][i])
+plt.plot(data[0], myPrediction, label='My Prediction')
 
-plt.plot(data[0], data[1])
-plt.plot(data[0], perceptron_Plot)
+print("network: ", network)
+plt.legend(loc='best')
+plt.ylim(-0.1, 0.6)
 plt.show()
