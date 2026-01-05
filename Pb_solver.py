@@ -91,7 +91,7 @@ if __name__ == "__main__":
     margin = 0.1
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
-    mix_product = GaussMixClass.GaussMixProduct(w2, m2, s2, w1, m1, s1)
+    mix_product = GaussMixClass.GaussMixProduct(w2, m2, s2, w2, m2, s2)
 
     new_mix =  rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
 
