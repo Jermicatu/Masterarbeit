@@ -76,13 +76,23 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
 
 
 if __name__ == "__main__":
+    """
     w1 = torch.tensor([0.4, 0.2, 0.4])
-    m1 = torch.tensor([-3.0, 0.0, 3.0])
-    s1 = torch.tensor([1., 1., 1.])
+        m1 = torch.tensor([-3.0, 0.0, 3.0])
+        s1 = torch.tensor([1., 1., 1.])
 
-    w2 = torch.tensor([0.25, 0.25, 0.25, 0.25])
-    m2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
-    s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])
+        w2 = torch.tensor([0.25, 0.25, 0.25, 0.25])
+        m2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
+        s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])
+    """
+
+    w1 = torch.tensor([1.])
+    m1 = torch.tensor([-1.])
+    s1 = torch.tensor([1.])
+
+    w2 = torch.tensor([1.])
+    m2 = torch.tensor([1.])
+    s2 = torch.tensor([1.])
 
     nnodes = 20
     nsteps = 10
@@ -91,7 +101,7 @@ if __name__ == "__main__":
     margin = 0.1
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
-    mix_product = GaussMixClass.GaussMixProduct(w2, m2, s2, w2, m2, s2)
+    mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
 
     new_mix =  rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
 
