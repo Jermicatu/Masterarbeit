@@ -5,11 +5,23 @@ import numpy as np
 import Create_P
 import Create_b
 import GaussMixClass
+from logger_config import logger
 
 def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
     b_vec = Create_b.b(n_nodes, mix_start, mix_product, gamma, noise)
     P_mat = Create_P.P(n_nodes, mix_start, mix_product, gamma, noise)
     sol = torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1)
+
+    cond_num = torch.linalg.cond(P_mat)
+    if cond_num > 1e8:  # High condition number = unstable
+        logger.error(f"🔥 P_mat is ill-conditioned! κ(P) = {cond_num:.4e}")
+        print("Hi")
+    elif cond_num > 1e4:
+        logger.warning(f"⚠️ P_mat moderately ill-conditioned: κ(P) = {cond_num:.4e}")
+        print("Hi")
+    symmetry_error = torch.norm(P_mat - P_mat.T)
+    if symmetry_error > 1e-6:
+        logger.warning(f"⚠️ P_mat not symmetric! Error: {symmetry_error:.4f}")
 
     n = int(sol.size(0)/3)
     w = torch.zeros(n)
@@ -63,6 +75,16 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        
+        logger.debug(f"Loop number {i}:")
+
+        logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
+        logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
+        logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
+        logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
+
+        logger.debug(f"Change is w={change.w}, m={change.m}, s={change.s}.")
         
         mix = mix + change 
 
@@ -100,10 +122,14 @@ if __name__ == "__main__":
     noise = 0.01
     margin = 0.1
 
+    
+    logger.debug(f"Input Gauss mix f_1 is w={w1}, m={m1}, s={s1}.")
+    logger.debug(f"Input Gauss mix f_2 is w={w2}, m={m2}, s={s2}.")
+
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
 
-    new_mix =  rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
+    new_mix = rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
 
     x = torch.linspace(-30, 30, 400)
     f_0 = new_mix.eval(x)

@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import GaussMixClass
+from logger_config import logger
 
 def gh_nodes_weights(n_nodes: int):
     """
@@ -78,7 +79,7 @@ def big_M(x, mix_start):
     
     for i in range(0, M.size(0)):
         if not torch.allclose(M[i].transpose(0, 1), M[i]):
-            raise ValueError("M[i] Matrix is not symmetric.")
+            logger.error(f"🔥 M[{i}] is NOT symmetric! Max diff: {torch.max(torch.abs(M[i] - M[i].T)):.6f}")
 
     return M
 
@@ -92,6 +93,8 @@ def delta_P_integrand(x, mix_start, mix_product, gamma, noise):
             @param noise: float 
     Output: the integrand of delta P
     """
+    if mix_start.eval(x).size() != mix_product.eval_tilde(x, gamma, noise).size():
+        logger.error("mix_start.eval(x) and mix_product.eval_tilde(x, gamma, noise) have wrong sizes")
 
     return (mix_start.eval(x) - mix_product.eval_tilde(x, gamma, noise)).view(-1,1,1) * big_M(x, mix_start)
 
@@ -240,4 +243,6 @@ def P_1_old(mix):
     return P_1
 
 def P(n_nodes, mix_start, mix_product, gamma, noise):
+    if P_1(mix_start).size() != delta_P(n_nodes, mix_start, mix_product, gamma, noise).size():
+        logger.error("P_1 and delta_P have wrong sizes")
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)

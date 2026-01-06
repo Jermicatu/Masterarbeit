@@ -2,6 +2,7 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from logger_config import logger
 
 class GaussMixProduct:
     mix1 = None
