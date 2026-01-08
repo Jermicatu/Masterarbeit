@@ -46,7 +46,8 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
     term2 = ((x_expanded - m_start) / s_start ) * factor
     term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
-    stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
+    
+    # stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
     
     #for i in range(0, term1.size(0)):
     #    for j in range(0, term1.size(1)):
@@ -59,3 +60,28 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     #print(stacked_new - stacked.permute(2,0,1).reshape(-1,x.size(0)).T)
         
     return stacked.permute(2,0,1).reshape(-1,x.size(0)).T
+
+
+if __name__ == "__main__":
+
+    w1 = torch.tensor([1.])
+    m1 = torch.tensor([-1.])
+    s1 = torch.tensor([1.])
+
+    w2 = torch.tensor([0.1])
+    m2 = torch.tensor([1.])
+    s2 = torch.tensor([1.])
+
+    nnodes = 2
+    nsteps = 10
+    gamma = 1.0
+    noise = 0.01
+    margin = 0.1
+
+    logger.debug(f"Input Gauss mix f_1 is w={w1}, m={m1}, s={s1}.")
+    logger.debug(f"Input Gauss mix f_2 is w={w2}, m={m2}, s={s2}.")
+
+    mix_start = GaussMixClass.GaussMix(w2, m2, s2)
+    mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
+
+    b(nnodes, mix_start, mix_product, gamma, noise)
