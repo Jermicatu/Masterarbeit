@@ -77,14 +77,14 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
     for i in range(n_steps):
         logger.debug(f"Loop number {i}:")
         g = gammas[i]
-        k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)# * (-1)
+        k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise) * 1
         logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
         # quit()
-        k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)# * (-1)
+        k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise) * 1
         logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
-        k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)# * (-1)
+        k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise) * 1
         logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
-        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)# * (-1)
+        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise) * 1
         logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
@@ -118,12 +118,12 @@ if __name__ == "__main__":
         s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])
     """
 
-    w1 = torch.tensor([0.3])
-    m1 = torch.tensor([-1.])
+    w1 = torch.tensor([1.])
+    m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
-    w2 = torch.tensor([0.3])
-    m2 = torch.tensor([-2.])
+    w2 = torch.tensor([1.])
+    m2 = torch.tensor([-1.])
     s2 = torch.tensor([1.])
 
     nnodes = 20

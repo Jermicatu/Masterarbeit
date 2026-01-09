@@ -117,8 +117,8 @@ class GaussMix:
         s_ = self.s[None, :]
         w_ = self.w[None, :]
 
-        # coef = 1.0 / torch.sqrt(2. * math.pi * s_)
-        coef = 1.0
+        coef = 1.0 / torch.sqrt(2. * math.pi * s_)
+        # coef = 1.0
         exponent = torch.exp(-0.5 * (x - m_) ** 2. / (s_ * factor))
         gaussians = coef * exponent
 
@@ -139,7 +139,7 @@ class GaussMix:
         s_ = self.s[None, :]
         w_ = self.w[None, :]
 
-        coef = (noise - gamma) * (x - m_) / ((1 + noise)**2 * s_) # * torch.sqrt(2. * math.pi * s_))
+        coef = - (noise + gamma) * (x - m_) ** 2 / ((1 + noise)**2 * s_ * torch.sqrt(2. * math.pi * s_))
         exponent = torch.exp(-0.5 * (x - m_) ** 2 / (s_*factor))
         gaussians = coef * exponent 
 
@@ -173,16 +173,26 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.show()
 
-    gamma = 1
-    noise = 0.00001
-    f_gamma = my_Gauss.mix2.eval_gamma(x, gamma, noise)
-    plt.plot(x, f_gamma, label="f_gamma")
 
-    f_gamma_diff = my_Gauss.mix2.eval_gamma_diff(x, gamma, noise)
-    plt.plot(x, f_gamma_diff, label="f_gamma_diff")
+    w3 = torch.tensor([1.])
+    m3 = torch.tensor([-1.])
+    s3 = torch.tensor([1.])
+
+    mix3 = GaussMix(w3, m3, s3)
+
+    gammas = torch.linspace(0, 1, 100)
+    noise = 0.01
+    f_gamma = torch.linspace(0, 1, 100)
+    f_gamma_diff = torch.linspace(0, 1, 100)
+    for i in range(0, 100):
+        f_gamma[i] = my_Gauss.mix1.eval_gamma(torch.tensor([0]), gammas[i], noise)
+        f_gamma_diff[i] = my_Gauss.mix1.eval_gamma_diff(torch.tensor([0]), gammas[i], noise)
+        
+    plt.plot(gammas, f_gamma, label="f_gamma")
+    plt.plot(gammas, f_gamma_diff, label="f_gamma_diff")
     
-    dx = x[1] - x[0]
-    plt.plot(x, np.gradient(f_gamma, dx), label="f_gamma_diff_np")
+    dgamma = gammas[1] - gammas[0]
+    plt.plot(gammas, np.gradient(f_gamma, dgamma), label="f_gamma_diff_np")
 
     plt.legend()
     plt.xlabel("x")

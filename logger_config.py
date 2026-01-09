@@ -7,7 +7,7 @@ def setup_logger(name="gaussian_product", log_file="debug.log"):
     
     # Create logger
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.WARNING)
     
     # Clear any existing handlers (prevents duplicates)
     logger.handlers.clear()

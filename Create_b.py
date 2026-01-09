@@ -43,6 +43,20 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
         
     factor = (mix_product.mix1.eval_gamma_diff(x, gamma, noise) * mix_product.mix2.eval(x)).view(-1,1) * mix_start.eval_individual(x)
 
+    #print(mix_product.mix1.w)
+    #print(mix_product.mix1.m)
+    #print(mix_product.mix1.s)
+
+    #print(mix_product.mix1.eval_gamma_diff(torch.tensor([-5.3875]), gamma, noise))
+
+    logger.debug(f"Factor: x is: {x}")
+    logger.debug(f"Factor: diff is: {mix_product.mix1.eval_gamma_diff(x, gamma, noise)}")
+    logger.debug(f"Factor: mix2[0] is: {mix_product.mix2.eval(x).view(-1,1)[0]}")
+    logger.debug(f"Factor: mix_start[0] is: {mix_start.eval_individual(x)[0,0]}")
+    logger.debug(f"Factor: factor[0] is: {factor[0,0]}")
+
+
+
     term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
     term2 = ((x_expanded - m_start) / s_start ) * factor
     term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
