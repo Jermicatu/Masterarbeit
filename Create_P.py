@@ -245,6 +245,6 @@ def P_1_old(mix):
 def P(n_nodes, mix_start, mix_product, gamma, noise):
     if P_1(mix_start).size() != delta_P(n_nodes, mix_start, mix_product, gamma, noise).size():
         logger.error("P_1 and delta_P have wrong sizes")
-    logger.debug(f"P_1 is: {P_1(mix_start)}")
-    logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
+    #logger.debug(f"P_1 is: {P_1(mix_start)}")
+    #logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)

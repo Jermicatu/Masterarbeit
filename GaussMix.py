@@ -718,7 +718,7 @@ def rk4_Pb(n_nodes, n_steps, eta_start, eta_1, eta_2, noise, margin):
     for i in range(n_steps):
         g = gammas[i]
         
-        k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise)
+        k1 = solve_Pb(n_nodes, eta,            eta_1, eta_2, g,       noise) # TODO check why this returns negative sigma for current "wierd" w/10 example
         k2 = solve_Pb(n_nodes, eta + h/2 * k1, eta_1, eta_2, g + h/2, noise)
         k3 = solve_Pb(n_nodes, eta + h/2 * k2, eta_1, eta_2, g + h/2, noise)
         k4 = solve_Pb(n_nodes, eta + h * k3,   eta_1, eta_2, g + h,   noise)
