@@ -166,26 +166,12 @@ def P_1(mix):
             P_1[3*i + 2, 3*j + 1] = prefactor[i, j] * P32[i, j]
             P_1[3*i + 2, 3*j + 2] = prefactor[i, j] * P33[i, j]
 
-
-    #print(torch.allclose(prefactor.transpose(0, 1), prefactor))
-    #print(torch.allclose(P11.transpose(0, 1), P11))
-    #print(torch.allclose(P12.transpose(0, 1), P21))
-    #print(torch.allclose(P13.transpose(0, 1), P31))
-    #print(torch.allclose(P22.transpose(0, 1), P22))
-    #print(torch.allclose(P23.transpose(0, 1), P32))
-    #print(torch.allclose(P31.transpose(0, 1), P13))
-    #print(torch.allclose(P33.transpose(0, 1), P33))
-
     if not (P_1.size(0) == 3*L and P_1.size(1) == 3*L):
         raise ValueError("P_1 Matrix is not of size (3*L, 3*L).")
     
     if not torch.allclose(P_1.transpose(0, 1), P_1):
         raise ValueError("P_1 Matrix is not symmetric.")
-    
-    #eigs = torch.linalg.eigvalsh(P_1)
-    #if (eigs < -1e-1).any():
-    #    raise ValueError("P_1 is not PSD!")
-    
+        
     return P_1
 
 def P_1_old(mix):
@@ -248,3 +234,15 @@ def P(n_nodes, mix_start, mix_product, gamma, noise):
     #logger.debug(f"P_1 is: {P_1(mix_start)}")
     #logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)
+
+if __name__ == "__main__":
+    w1 = torch.tensor([0.5, 0.5])
+    m1 = torch.tensor([1., -1.])
+    s1 = torch.tensor([1., 2.])
+
+    w2 = torch.tensor([1.])
+    m2 = torch.tensor([-1.])
+    s2 = torch.tensor([1.])
+
+    mix1 = GaussMixClass.GaussMix(w1, m1, s1)
+    print(P_1(mix1))

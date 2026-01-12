@@ -29,7 +29,7 @@ def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
 
 
     #logger.debug(f"P is: {P_mat}.")
-    logger.debug(f"b is: {b_vec}.")
+    #logger.debug(f"b is: {b_vec}.")
 
     n = int(sol.size(0)/3)
     w = torch.zeros(n)
@@ -97,7 +97,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         
         mix = mix + change
         mix.s = torch.clamp(mix.s, min = 0.01)
-        mix.w = mix.w # /10
+        mix.w = mix.w / 100
 
 
         """x = torch.linspace(-30, 30, 400)
@@ -130,21 +130,21 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])"""
 
     
-    """w1 = torch.tensor([1.])
+    w1 = torch.tensor([1.])
     m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
-    s2 = torch.tensor([1.])"""
+    s2 = torch.tensor([1.])
 
-    w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
+    """w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
     m1 = torch.tensor([-3., -1., 1, 3])
     s1 = torch.tensor([1., 1., 1., 1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-2.])
-    s2 = torch.tensor([1.])
+    s2 = torch.tensor([1.])"""
     
     nnodes = 20
     nsteps = 10
@@ -160,7 +160,6 @@ if __name__ == "__main__":
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
 
     new_mix = rk4_Pb(nnodes, nsteps, mix_start, mix_product, noise, margin)
-
 
     logger.debug(f"Output Gauss mix is w={new_mix.w}, m={new_mix.m}, s={new_mix.s}.")
 
@@ -183,3 +182,5 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.ylim(-0.1, 0.5)
     plt.show()
+
+    # 22ter 12 uhr
