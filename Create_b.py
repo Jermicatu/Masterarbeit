@@ -46,6 +46,24 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
     term2 = ((x_expanded - m_start) / s_start ) * factor
     term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
+
+
+    # TODO DELETE THIS
+    #x = torch.linspace(-30, 30, 400)
+    #x_expanded = x.view(-1, 1)
+    #factor = (mix_product.mix1.eval_gamma_diff(x, gamma, noise) * mix_product.mix2.eval(x)).view(-1,1) * mix_start.eval_individual(x)
+#
+#    term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
+#    term2 = ((x_expanded - m_start) / s_start ) * factor
+#    term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
+#        
+#    plt.plot(x, term1, label="term1(x)")
+#    plt.legend()
+#    plt.xlabel("x")
+#    plt.ylabel("f(x)")
+#    plt.grid(True)
+#    plt.show()
+    # TODO DELETE THIS
     
     # stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
     

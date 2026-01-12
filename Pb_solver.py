@@ -29,7 +29,7 @@ def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
 
 
     #logger.debug(f"P is: {P_mat}.")
-    #logger.debug(f"b is: {b_vec}.")
+    logger.debug(f"b is: {b_vec}.")
 
     n = int(sol.size(0)/3)
     w = torch.zeros(n)
@@ -78,14 +78,18 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
     for i in range(n_steps):
         logger.debug(f"Loop number {i}:")
         g = gammas[i]
-        k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise) * 1
+        k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
         #logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
+        k1.s = torch.clamp(k1.s, min = 0.01)
         # quit()
-        k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise) * 1
+        k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)
         #logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
-        k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise) * 1
+        k2.s = torch.clamp(k2.s, min = 0.01)
+        k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)
         #logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
-        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise) * 1
+        k3.s = torch.clamp(k3.s, min = 0.01)
+        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
+        k4.s = torch.clamp(k4.s, min = 0.01)
         #logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
@@ -93,9 +97,11 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         
         mix = mix + change
         mix.s = torch.clamp(mix.s, min = 0.01)
-        mix.w = mix.w# /10
-        x = torch.linspace(-30, 30, 400)
-        print(mix.s)
+        mix.w = mix.w # /10
+
+
+        """x = torch.linspace(-30, 30, 400)
+        
         f_0 = mix.eval(x)
         plt.plot(x, f_0, label="f_p")
 
@@ -106,7 +112,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         plt.ylabel("f(x)")
         plt.grid(True)
         plt.ylim(-0.1, 0.5)
-        plt.show()
+        plt.show()"""
 
         #if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) == False:
         #    mix = GaussSpliter.add_component(n_nodes, mix, mix_product)
@@ -124,12 +130,20 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])"""
 
     
-    w1 = torch.tensor([1.])
+    """w1 = torch.tensor([1.])
     m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
+    s2 = torch.tensor([1.])"""
+
+    w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
+    m1 = torch.tensor([-3., -1., 1, 3])
+    s1 = torch.tensor([1., 1., 1., 1.])
+
+    w2 = torch.tensor([1.])
+    m2 = torch.tensor([-2.])
     s2 = torch.tensor([1.])
     
     nnodes = 20
@@ -150,7 +164,7 @@ if __name__ == "__main__":
 
     logger.debug(f"Output Gauss mix is w={new_mix.w}, m={new_mix.m}, s={new_mix.s}.")
 
-    x = torch.linspace(-30, 30, 400)
+    x = torch.linspace(-10, 10, 400)
     f_0 = new_mix.eval(x)
     f_1 = mix_product.mix1.eval(x)
     f_2 = mix_product.mix2.eval(x)
