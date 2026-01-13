@@ -122,8 +122,8 @@ class GaussMix:
         exponent = torch.exp(-0.5 * (x - m_) ** 2. / (s_ * factor))
         gaussians = coef * exponent
 
-        #return (w_ * gaussians).sum(dim=1)
-        return gaussians.sum(dim=1)
+        return (w_ * gaussians).sum(dim=1)
+        #return gaussians.sum(dim=1)
     
     def eval_gamma_diff(self, x, gamma, noise):
         """
@@ -144,13 +144,14 @@ class GaussMix:
         exponent = torch.exp(-0.5 * (x - m_) ** 2 / (s_*factor))
         gaussians = coef * exponent 
 
+        #return gaussians.sum(dim=1)
         return (w_ * gaussians).sum(dim=1)
 
 if __name__ == "__main__":
     """
     Test here
     """
-    w1 = torch.tensor([0.2, 0.4, 0.2])
+    w1 = torch.tensor([0.3, 0.4, 0.3])
     m1 = torch.tensor([10., 0., -10.])
     s1 = torch.tensor([1., 1., 1.])
     w2 = torch.tensor([0.5, 0.1, 0.1, 0.1, 0.2])
@@ -218,6 +219,47 @@ if __name__ == "__main__":
     plt.ylabel("f(x)")
     plt.grid(True)
     plt.show()
+
+
+    w1_test = torch.tensor([0.5, 0.5])
+    m1_test = torch.tensor([-2., 2.])
+    s1_test = torch.tensor([1., 1.])
+
+
+    w2_test = torch.tensor([0.333, 0.334, 0.333])
+    m2_test = torch.tensor([-4., 0., 4.])
+    s2_test = torch.tensor([1., 1., 1.])
+
+    test_mix = GaussMixProduct(w1_test, m1_test, s1_test, w2_test, m2_test, s2_test)
+
+    x = torch.linspace(-7, 7, 400)
+
+    f_1 = test_mix.mix2.eval(x)
+    plt.plot(x, f_1, label="f_1")
+
+    f_2 = test_mix.mix1.eval(x)
+    plt.plot(x, f_2, label="f_2")
+    dx = x[1] - x[0]
+
+    f_1_g_0 = test_mix.eval_tilde(x, 0, 0.01)
+    f_1_g_0 = f_1_g_0 / (dx * (f_1_g_0.sum()- 0.5*f_1_g_0[0] - 0.5*f_1_g_0[-1]))
+    plt.plot(x, f_1_g_0, label="0")
+    f_1_g_033 = test_mix.eval_tilde(x, 0.3, 0.01)
+    f_1_g_033 = f_1_g_033 / (dx * (f_1_g_033.sum()- 0.5*f_1_g_033[0] - 0.5*f_1_g_033[-1]))
+    plt.plot(x, f_1_g_033, label="0.33")
+    f_1_g_066 = test_mix.eval_tilde(x, 0.66, 0.01)
+    f_1_g_066 = f_1_g_066 / (dx * (f_1_g_066.sum()- 0.5*f_1_g_066[0] - 0.5*f_1_g_066[-1]))
+    plt.plot(x, f_1_g_066, label="0.66")
+    f_1_g_1 = test_mix.eval_tilde(x, 1, 0.01)
+    f_1_g_1 = f_1_g_1 / (dx * (f_1_g_1.sum()- 0.5*f_1_g_1[0] - 0.5*f_1_g_1[-1]))
+    plt.plot(x, f_1_g_1, label="1")
+
+    plt.legend()
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.grid(True)
+    plt.show()
+
 
     ("====================================")
 

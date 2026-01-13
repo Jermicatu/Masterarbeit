@@ -236,13 +236,19 @@ def P(n_nodes, mix_start, mix_product, gamma, noise):
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)
 
 if __name__ == "__main__":
-    w1 = torch.tensor([0.5, 0.5])
-    m1 = torch.tensor([1., -1.])
-    s1 = torch.tensor([1., 2.])
+    w1 = torch.tensor([1.])
+    m1 = torch.tensor([1.])
+    s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
     s2 = torch.tensor([1.])
 
-    mix1 = GaussMixClass.GaussMix(w1, m1, s1)
-    print(P_1(mix1))
+    mix_start = GaussMixClass.GaussMix(w2, m2, s2)
+    mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
+    gamma = 0
+    noise = 0.01
+    nodes = torch.tensor([0.])
+    x = nodes
+    print(big_M(x, mix_start))
+    # print(delta_P_integrand(nodes, mix_start, mix_product, gamma, noise))

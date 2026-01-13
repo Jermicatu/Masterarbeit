@@ -78,27 +78,29 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
     for i in range(n_steps):
         logger.debug(f"Loop number {i}:")
         g = gammas[i]
+        
         k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
-        #logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
+        logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
         k1.s = torch.clamp(k1.s, min = 0.01)
-        # quit()
+        
         k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)
-        #logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
+        logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
         k2.s = torch.clamp(k2.s, min = 0.01)
+        
         k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)
-        #logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
+        logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
         k3.s = torch.clamp(k3.s, min = 0.01)
+        
         k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
         k4.s = torch.clamp(k4.s, min = 0.01)
-        #logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
+        logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
         logger.debug(f"Change is w={change.w}, m={change.m}, s={change.s}.")
         
         mix = mix + change
         mix.s = torch.clamp(mix.s, min = 0.01)
-        mix.w = mix.w / 100
-
+        mix.w = mix.w
 
         """x = torch.linspace(-30, 30, 400)
         
@@ -130,24 +132,24 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])"""
 
     
-    w1 = torch.tensor([1.])
+    """    w1 = torch.tensor([1.])
     m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
-    s2 = torch.tensor([1.])
+    s2 = torch.tensor([1.])"""
 
-    """w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
+    w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
     m1 = torch.tensor([-3., -1., 1, 3])
     s1 = torch.tensor([1., 1., 1., 1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-2.])
-    s2 = torch.tensor([1.])"""
+    s2 = torch.tensor([1.])
     
     nnodes = 20
-    nsteps = 10
+    nsteps = 20
     gamma = 1.0
     noise = 0.01
     margin = 0.1
@@ -169,8 +171,13 @@ if __name__ == "__main__":
     f_2 = mix_product.mix2.eval(x)
     f_tild = mix_product.eval_tilde(x, gamma, noise)
     f_p = f_1*f_2
+    
+    dx = x[1] - x[0]
+    f_p_int = dx * (f_p.sum()- 0.5*f_p[0] - 0.5*f_p[-1])
 
-    plt.plot(x, f_0, label="approximation")
+    f_tild_int = dx * (f_tild.sum()- 0.5*f_tild[0] - 0.5*f_tild[-1])
+
+    plt.plot(x, f_0*f_tild_int, label="approximation")
     plt.plot(x, f_1, label="f_1")
     plt.plot(x, f_2, label="f_2")
     plt.plot(x, f_tild, label="f_tilde")
@@ -184,3 +191,13 @@ if __name__ == "__main__":
     plt.show()
 
     # 22ter 12 uhr
+    """
+    Questions:
+
+    What is f_p = f_1*f_2?
+    Why is it normalized?
+    When is it getting normalized?
+    What is with f_tilde?
+    Why is f_tilde not fitting both restrictions?
+    Even without the "ommited factor" f_tilde from the example shouldnt be that?
+    """
