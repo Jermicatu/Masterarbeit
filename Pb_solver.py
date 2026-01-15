@@ -132,21 +132,21 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])"""
 
     
-    """    w1 = torch.tensor([1.])
+    w1 = torch.tensor([1.])
     m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
-    s2 = torch.tensor([1.])"""
+    s2 = torch.tensor([1.])
 
-    w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
+    """w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
     m1 = torch.tensor([-3., -1., 1, 3])
     s1 = torch.tensor([1., 1., 1., 1.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-2.])
-    s2 = torch.tensor([1.])
+    s2 = torch.tensor([1.])"""
     
     nnodes = 20
     nsteps = 20
@@ -174,10 +174,9 @@ if __name__ == "__main__":
     
     dx = x[1] - x[0]
     f_p_int = dx * (f_p.sum()- 0.5*f_p[0] - 0.5*f_p[-1])
-
     f_tild_int = dx * (f_tild.sum()- 0.5*f_tild[0] - 0.5*f_tild[-1])
 
-    plt.plot(x, f_0*f_tild_int, label="approximation")
+    plt.plot(x, f_0, label="approximation")
     plt.plot(x, f_1, label="f_1")
     plt.plot(x, f_2, label="f_2")
     plt.plot(x, f_tild, label="f_tilde")

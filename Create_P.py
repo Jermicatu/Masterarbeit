@@ -95,7 +95,6 @@ def delta_P_integrand(x, mix_start, mix_product, gamma, noise):
     """
     if mix_start.eval(x).size() != mix_product.eval_tilde(x, gamma, noise).size():
         logger.error("mix_start.eval(x) and mix_product.eval_tilde(x, gamma, noise) have wrong sizes")
-
     return (mix_start.eval(x) - mix_product.eval_tilde(x, gamma, noise)).view(-1,1,1) * big_M(x, mix_start)
 
 def delta_P(n_nodes, mix_start, mix_product, gamma, noise):
@@ -246,9 +245,7 @@ if __name__ == "__main__":
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
-    gamma = 0
+    gamma = 0.5
     noise = 0.01
     nodes = torch.tensor([0.])
     x = nodes
-    print(big_M(x, mix_start))
-    # print(delta_P_integrand(nodes, mix_start, mix_product, gamma, noise))
