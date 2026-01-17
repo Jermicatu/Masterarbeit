@@ -171,10 +171,12 @@ if __name__ == "__main__":
     f_2 = mix_product.mix2.eval(x)
     f_tild = mix_product.eval_tilde(x, gamma, noise)
     f_p = f_1*f_2
-    
+
+    """
     dx = x[1] - x[0]
     f_p_int = dx * (f_p.sum()- 0.5*f_p[0] - 0.5*f_p[-1])
     f_tild_int = dx * (f_tild.sum()- 0.5*f_tild[0] - 0.5*f_tild[-1])
+    """
 
     plt.plot(x, f_0, label="approximation")
     plt.plot(x, f_1, label="f_1")
