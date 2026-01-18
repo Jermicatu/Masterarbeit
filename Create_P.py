@@ -249,8 +249,3 @@ if __name__ == "__main__":
     noise = 0.01
     nodes = torch.tensor([0.])
     x = nodes
-
-    print(delta_P(50, mix_start, mix_product, gamma, noise))
-
-    # TODO test integration and delta_p
-    """IT IS SUS"""
