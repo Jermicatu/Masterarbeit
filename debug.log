@@ -1,0 +1,123 @@
+2026-01-21 15:16:36,078 | gaussian_product | DEBUG | Input Gauss mix f_1 is w=tensor([1.]), m=tensor([1.]), s=tensor([1.]).
+2026-01-21 15:16:36,079 | gaussian_product | DEBUG | Input Gauss mix f_2 is w=tensor([1.]), m=tensor([-1.]), s=tensor([1.]).
+2026-01-21 15:16:36,079 | gaussian_product | DEBUG | Loop number 0:
+2026-01-21 15:16:36,099 | gaussian_product | DEBUG | k1 is w=tensor([-4.8472]), m=tensor([0.0400]), s=tensor([-5.9444]).
+2026-01-21 15:16:36,111 | gaussian_product | DEBUG | k2 is w=tensor([-0.7068]), m=tensor([0.1373]), s=tensor([-0.7895]).
+2026-01-21 15:16:36,122 | gaussian_product | DEBUG | k3 is w=tensor([-4.6270]), m=tensor([0.1331]), s=tensor([-5.6584]).
+2026-01-21 15:16:36,132 | gaussian_product | DEBUG | k4 is w=tensor([-0.6114]), m=tensor([0.2335]), s=tensor([0.0100]).
+2026-01-21 15:16:36,133 | gaussian_product | DEBUG | Change is w=tensor([-0.1344]), m=tensor([0.0068]), s=tensor([0.0005]).
+2026-01-21 15:16:36,134 | gaussian_product | DEBUG | Loop number 1:
+2026-01-21 15:16:36,145 | gaussian_product | DEBUG | k1 is w=tensor([-1.1188]), m=tensor([0.2337]), s=tensor([-1.2441]).
+2026-01-21 15:16:36,156 | gaussian_product | DEBUG | k2 is w=tensor([-1.3291]), m=tensor([0.3291]), s=tensor([-1.4432]).
+2026-01-21 15:16:36,167 | gaussian_product | DEBUG | k3 is w=tensor([-1.2803]), m=tensor([0.3284]), s=tensor([-1.3766]).
+2026-01-21 15:16:36,178 | gaussian_product | DEBUG | k4 is w=tensor([-1.4037]), m=tensor([0.4213]), s=tensor([0.0100]).
+2026-01-21 15:16:36,179 | gaussian_product | DEBUG | Change is w=tensor([-0.0645]), m=tensor([0.0164]), s=tensor([0.0005]).
+2026-01-21 15:16:36,179 | gaussian_product | DEBUG | Loop number 2:
+2026-01-21 15:16:36,191 | gaussian_product | DEBUG | k1 is w=tensor([-1.3993]), m=tensor([0.4213]), s=tensor([-1.4521]).
+2026-01-21 15:16:36,202 | gaussian_product | DEBUG | k2 is w=tensor([-1.4463]), m=tensor([0.5107]), s=tensor([-1.4217]).
+2026-01-21 15:16:36,213 | gaussian_product | DEBUG | k3 is w=tensor([-1.4368]), m=tensor([0.5111]), s=tensor([-1.4070]).
+2026-01-21 15:16:36,224 | gaussian_product | DEBUG | k4 is w=tensor([-1.4510]), m=tensor([0.5969]), s=tensor([0.0100]).
+2026-01-21 15:16:36,225 | gaussian_product | DEBUG | Change is w=tensor([-0.0718]), m=tensor([0.0255]), s=tensor([0.0005]).
+2026-01-21 15:16:36,225 | gaussian_product | DEBUG | Loop number 3:
+2026-01-21 15:16:36,236 | gaussian_product | DEBUG | k1 is w=tensor([-1.4512]), m=tensor([0.5969]), s=tensor([-1.3164]).
+2026-01-21 15:16:36,247 | gaussian_product | DEBUG | k2 is w=tensor([-1.4396]), m=tensor([0.6779]), s=tensor([-1.1661]).
+2026-01-21 15:16:36,258 | gaussian_product | DEBUG | k3 is w=tensor([-1.4416]), m=tensor([0.6797]), s=tensor([-1.1700]).
+2026-01-21 15:16:36,268 | gaussian_product | DEBUG | k4 is w=tensor([-1.4139]), m=tensor([0.7564]), s=tensor([0.0100]).
+2026-01-21 15:16:36,269 | gaussian_product | DEBUG | Change is w=tensor([-0.0719]), m=tensor([0.0339]), s=tensor([0.0005]).
+2026-01-21 15:16:36,269 | gaussian_product | DEBUG | Loop number 4:
+2026-01-21 15:16:36,281 | gaussian_product | DEBUG | k1 is w=tensor([-1.4150]), m=tensor([0.7563]), s=tensor([-0.9683]).
+2026-01-21 15:16:36,292 | gaussian_product | DEBUG | k2 is w=tensor([-1.3769]), m=tensor([0.8271]), s=tensor([-0.7081]).
+2026-01-21 15:16:36,303 | gaussian_product | DEBUG | k3 is w=tensor([-1.3823]), m=tensor([0.8303]), s=tensor([-0.7227]).
+2026-01-21 15:16:36,314 | gaussian_product | DEBUG | k4 is w=tensor([-1.3349]), m=tensor([0.8963]), s=tensor([0.0100]).
+2026-01-21 15:16:36,315 | gaussian_product | DEBUG | Change is w=tensor([-0.0689]), m=tensor([0.0414]), s=tensor([0.0005]).
+2026-01-21 15:16:36,315 | gaussian_product | DEBUG | Loop number 5:
+2026-01-21 15:16:36,327 | gaussian_product | DEBUG | k1 is w=tensor([-1.3360]), m=tensor([0.8960]), s=tensor([-0.3974]).
+2026-01-21 15:16:36,337 | gaussian_product | DEBUG | k2 is w=tensor([-1.2842]), m=tensor([0.9553]), s=tensor([0.0114]).
+2026-01-21 15:16:36,349 | gaussian_product | DEBUG | k3 is w=tensor([-1.2902]), m=tensor([0.9600]), s=tensor([-0.0153]).
+2026-01-21 15:16:36,361 | gaussian_product | DEBUG | k4 is w=tensor([-1.2330]), m=tensor([1.0146]), s=tensor([0.5041]).
+2026-01-21 15:16:36,361 | gaussian_product | DEBUG | Change is w=tensor([-0.0643]), m=tensor([0.0478]), s=tensor([0.0046]).
+2026-01-21 15:16:36,362 | gaussian_product | DEBUG | Loop number 6:
+2026-01-21 15:16:36,374 | gaussian_product | DEBUG | k1 is w=tensor([-1.2318]), m=tensor([1.0139]), s=tensor([0.5186]).
+2026-01-21 15:16:36,385 | gaussian_product | DEBUG | k2 is w=tensor([-1.1512]), m=tensor([1.0606]), s=tensor([1.3628]).
+2026-01-21 15:16:36,396 | gaussian_product | DEBUG | k3 is w=tensor([-1.1170]), m=tensor([1.0670]), s=tensor([1.6004]).
+2026-01-21 15:16:36,407 | gaussian_product | DEBUG | k4 is w=tensor([-0.6260]), m=tensor([1.1086]), s=tensor([5.8439]).
+2026-01-21 15:16:36,408 | gaussian_product | DEBUG | Change is w=tensor([-0.0533]), m=tensor([0.0531]), s=tensor([0.1024]).
+2026-01-21 15:16:36,408 | gaussian_product | DEBUG | Loop number 7:
+2026-01-21 15:16:36,420 | gaussian_product | DEBUG | k1 is w=tensor([0.0692]), m=tensor([1.1035]), s=tensor([10.7306]).
+2026-01-21 15:16:36,430 | gaussian_product | DEBUG | k2 is w=tensor([-1.6118]), m=tensor([1.1468]), s=tensor([-0.5930]).
+2026-01-21 15:16:36,442 | gaussian_product | DEBUG | k3 is w=tensor([6.3074]), m=tensor([1.1439]), s=tensor([84.4305]).
+2026-01-21 15:16:36,453 | gaussian_product | DEBUG | k4 is w=tensor([-0.4322]), m=tensor([1.1837]), s=tensor([0.9634]).
+2026-01-21 15:16:36,454 | gaussian_product | DEBUG | Change is w=tensor([0.0752]), m=tensor([0.0572]), s=tensor([1.5048]).
+2026-01-21 15:16:36,454 | gaussian_product | DEBUG | Loop number 8:
+2026-01-21 15:16:36,465 | gaussian_product | DEBUG | k1 is w=tensor([-1.0868]), m=tensor([1.1814]), s=tensor([1.2738]).
+2026-01-21 15:16:36,476 | gaussian_product | DEBUG | k2 is w=tensor([-1.1024]), m=tensor([1.2076]), s=tensor([1.2966]).
+2026-01-21 15:16:36,487 | gaussian_product | DEBUG | k3 is w=tensor([-1.1034]), m=tensor([1.2110]), s=tensor([1.2965]).
+2026-01-21 15:16:36,499 | gaussian_product | DEBUG | k4 is w=tensor([-1.1165]), m=tensor([1.2329]), s=tensor([1.3111]).
+2026-01-21 15:16:36,500 | gaussian_product | DEBUG | Change is w=tensor([-0.0551]), m=tensor([0.0604]), s=tensor([0.0648]).
+2026-01-21 15:16:36,500 | gaussian_product | DEBUG | Loop number 9:
+2026-01-21 15:16:36,511 | gaussian_product | DEBUG | k1 is w=tensor([-1.1164]), m=tensor([1.2322]), s=tensor([1.3111]).
+2026-01-21 15:16:36,522 | gaussian_product | DEBUG | k2 is w=tensor([-1.1279]), m=tensor([1.2486]), s=tensor([1.3163]).
+2026-01-21 15:16:36,533 | gaussian_product | DEBUG | k3 is w=tensor([-1.1287]), m=tensor([1.2509]), s=tensor([1.3159]).
+2026-01-21 15:16:36,543 | gaussian_product | DEBUG | k4 is w=tensor([-1.1401]), m=tensor([1.2632]), s=tensor([1.3091]).
+2026-01-21 15:16:36,544 | gaussian_product | DEBUG | Change is w=tensor([-0.0564]), m=tensor([0.0625]), s=tensor([0.0657]).
+2026-01-21 15:16:36,544 | gaussian_product | DEBUG | Loop number 10:
+2026-01-21 15:16:36,556 | gaussian_product | DEBUG | k1 is w=tensor([-1.1400]), m=tensor([1.2626]), s=tensor([1.3091]).
+2026-01-21 15:16:36,567 | gaussian_product | DEBUG | k2 is w=tensor([-1.1524]), m=tensor([1.2700]), s=tensor([1.2864]).
+2026-01-21 15:16:36,578 | gaussian_product | DEBUG | k3 is w=tensor([-1.1537]), m=tensor([1.2712]), s=tensor([1.2851]).
+2026-01-21 15:16:36,588 | gaussian_product | DEBUG | k4 is w=tensor([-1.1691]), m=tensor([1.2747]), s=tensor([1.2388]).
+2026-01-21 15:16:36,589 | gaussian_product | DEBUG | Change is w=tensor([-0.0577]), m=tensor([0.0635]), s=tensor([0.0641]).
+2026-01-21 15:16:36,590 | gaussian_product | DEBUG | Loop number 11:
+2026-01-21 15:16:36,601 | gaussian_product | DEBUG | k1 is w=tensor([-1.1691]), m=tensor([1.2743]), s=tensor([1.2388]).
+2026-01-21 15:16:36,612 | gaussian_product | DEBUG | k2 is w=tensor([-1.1888]), m=tensor([1.2737]), s=tensor([1.1573]).
+2026-01-21 15:16:36,622 | gaussian_product | DEBUG | k3 is w=tensor([-1.1914]), m=tensor([1.2735]), s=tensor([1.1521]).
+2026-01-21 15:16:36,633 | gaussian_product | DEBUG | k4 is w=tensor([-1.2178]), m=tensor([1.2691]), s=tensor([1.0095]).
+2026-01-21 15:16:36,634 | gaussian_product | DEBUG | Change is w=tensor([-0.0596]), m=tensor([0.0636]), s=tensor([0.0572]).
+2026-01-21 15:16:36,634 | gaussian_product | DEBUG | Loop number 12:
+2026-01-21 15:16:36,646 | gaussian_product | DEBUG | k1 is w=tensor([-1.2178]), m=tensor([1.2689]), s=tensor([1.0092]).
+2026-01-21 15:16:36,657 | gaussian_product | DEBUG | k2 is w=tensor([-1.2502]), m=tensor([1.2611]), s=tensor([0.7665]).
+2026-01-21 15:16:36,668 | gaussian_product | DEBUG | k3 is w=tensor([-1.2551]), m=tensor([1.2598]), s=tensor([0.7453]).
+2026-01-21 15:16:36,678 | gaussian_product | DEBUG | k4 is w=tensor([-1.2896]), m=tensor([1.2486]), s=tensor([0.3093]).
+2026-01-21 15:16:36,679 | gaussian_product | DEBUG | Change is w=tensor([-0.0627]), m=tensor([0.0630]), s=tensor([0.0362]).
+2026-01-21 15:16:36,679 | gaussian_product | DEBUG | Loop number 13:
+2026-01-21 15:16:36,691 | gaussian_product | DEBUG | k1 is w=tensor([-1.2894]), m=tensor([1.2486]), s=tensor([0.3102]).
+2026-01-21 15:16:36,701 | gaussian_product | DEBUG | k2 is w=tensor([-1.3046]), m=tensor([1.2358]), s=tensor([-0.4289]).
+2026-01-21 15:16:36,713 | gaussian_product | DEBUG | k3 is w=tensor([-1.3057]), m=tensor([1.2338]), s=tensor([-0.4584]).
+2026-01-21 15:16:36,724 | gaussian_product | DEBUG | k4 is w=tensor([-1.2505]), m=tensor([1.2211]), s=tensor([0.0100]).
+2026-01-21 15:16:36,724 | gaussian_product | DEBUG | Change is w=tensor([-0.0647]), m=tensor([0.0617]), s=tensor([0.0030]).
+2026-01-21 15:16:36,725 | gaussian_product | DEBUG | Loop number 14:
+2026-01-21 15:16:36,736 | gaussian_product | DEBUG | k1 is w=tensor([-1.2520]), m=tensor([1.2212]), s=tensor([-1.5576]).
+2026-01-21 15:16:36,748 | gaussian_product | DEBUG | k2 is w=tensor([-1.0843]), m=tensor([1.2115]), s=tensor([-2.8621]).
+2026-01-21 15:16:36,759 | gaussian_product | DEBUG | k3 is w=tensor([-1.1124]), m=tensor([1.2088]), s=tensor([-2.6373]).
+2026-01-21 15:16:36,770 | gaussian_product | DEBUG | k4 is w=tensor([-0.8715]), m=tensor([1.2007]), s=tensor([0.0100]).
+2026-01-21 15:16:36,771 | gaussian_product | DEBUG | Change is w=tensor([-0.0543]), m=tensor([0.0605]), s=tensor([0.0005]).
+2026-01-21 15:16:36,771 | gaussian_product | DEBUG | Loop number 15:
+2026-01-21 15:16:36,782 | gaussian_product | DEBUG | k1 is w=tensor([-0.8846]), m=tensor([1.2003]), s=tensor([-3.6707]).
+2026-01-21 15:16:36,794 | gaussian_product | DEBUG | k2 is w=tensor([-0.6622]), m=tensor([1.1898]), s=tensor([-4.2136]).
+2026-01-21 15:16:36,805 | gaussian_product | DEBUG | k3 is w=tensor([-0.7222]), m=tensor([1.1868]), s=tensor([-4.0534]).
+2026-01-21 15:16:36,816 | gaussian_product | DEBUG | k4 is w=tensor([-0.5264]), m=tensor([1.1741]), s=tensor([0.0100]).
+2026-01-21 15:16:36,817 | gaussian_product | DEBUG | Change is w=tensor([-0.0348]), m=tensor([0.0594]), s=tensor([0.0005]).
+2026-01-21 15:16:36,817 | gaussian_product | DEBUG | Loop number 16:
+2026-01-21 15:16:36,828 | gaussian_product | DEBUG | k1 is w=tensor([-0.5396]), m=tensor([1.1736]), s=tensor([-4.3230]).
+2026-01-21 15:16:36,840 | gaussian_product | DEBUG | k2 is w=tensor([-0.4162]), m=tensor([1.1565]), s=tensor([-4.3547]).
+2026-01-21 15:16:36,850 | gaussian_product | DEBUG | k3 is w=tensor([-0.4458]), m=tensor([1.1553]), s=tensor([-4.3314]).
+2026-01-21 15:16:36,862 | gaussian_product | DEBUG | k4 is w=tensor([-0.3451]), m=tensor([1.1364]), s=tensor([0.0100]).
+2026-01-21 15:16:36,862 | gaussian_product | DEBUG | Change is w=tensor([-0.0217]), m=tensor([0.0578]), s=tensor([0.0005]).
+2026-01-21 15:16:36,863 | gaussian_product | DEBUG | Loop number 17:
+2026-01-21 15:16:36,874 | gaussian_product | DEBUG | k1 is w=tensor([-0.3499]), m=tensor([1.1362]), s=tensor([-4.2916]).
+2026-01-21 15:16:36,885 | gaussian_product | DEBUG | k2 is w=tensor([-0.2840]), m=tensor([1.1148]), s=tensor([-4.2003]).
+2026-01-21 15:16:36,896 | gaussian_product | DEBUG | k3 is w=tensor([-0.2971]), m=tensor([1.1148]), s=tensor([-4.2056]).
+2026-01-21 15:16:36,907 | gaussian_product | DEBUG | k4 is w=tensor([-0.2430]), m=tensor([1.0924]), s=tensor([0.0100]).
+2026-01-21 15:16:36,908 | gaussian_product | DEBUG | Change is w=tensor([-0.0146]), m=tensor([0.0557]), s=tensor([0.0005]).
+2026-01-21 15:16:36,908 | gaussian_product | DEBUG | Loop number 18:
+2026-01-21 15:16:36,920 | gaussian_product | DEBUG | k1 is w=tensor([-0.2447]), m=tensor([1.0923]), s=tensor([-4.0993]).
+2026-01-21 15:16:36,931 | gaussian_product | DEBUG | k2 is w=tensor([-0.2060]), m=tensor([1.0688]), s=tensor([-3.9855]).
+2026-01-21 15:16:36,941 | gaussian_product | DEBUG | k3 is w=tensor([-0.2125]), m=tensor([1.0692]), s=tensor([-3.9941]).
+2026-01-21 15:16:36,952 | gaussian_product | DEBUG | k4 is w=tensor([-0.1801]), m=tensor([1.0451]), s=tensor([0.0100]).
+2026-01-21 15:16:36,953 | gaussian_product | DEBUG | Change is w=tensor([-0.0105]), m=tensor([0.0534]), s=tensor([0.0005]).
+2026-01-21 15:16:36,953 | gaussian_product | DEBUG | Loop number 19:
+2026-01-21 15:16:36,965 | gaussian_product | DEBUG | k1 is w=tensor([-0.1808]), m=tensor([1.0451]), s=tensor([-3.8792]).
+2026-01-21 15:16:36,975 | gaussian_product | DEBUG | k2 is w=tensor([-0.1561]), m=tensor([1.0205]), s=tensor([-3.7664]).
+2026-01-21 15:16:36,986 | gaussian_product | DEBUG | k3 is w=tensor([-0.1596]), m=tensor([1.0211]), s=tensor([-3.7740]).
+2026-01-21 15:16:36,997 | gaussian_product | DEBUG | k4 is w=tensor([-0.1385]), m=tensor([0.9963]), s=tensor([0.0100]).
+2026-01-21 15:16:36,998 | gaussian_product | DEBUG | Change is w=tensor([-0.0079]), m=tensor([0.0510]), s=tensor([0.0005]).
+2026-01-21 15:16:36,999 | gaussian_product | DEBUG | Output Gauss mix is w=tensor([0.0461]), m=tensor([-0.0051]), s=tensor([2.9083]).
