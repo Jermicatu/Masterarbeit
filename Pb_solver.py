@@ -191,7 +191,6 @@ if __name__ == "__main__":
     plt.ylim(-0.1, 0.5)
     plt.show()
 
-    # 22ter 12 uhr
     """
     Questions:
 
