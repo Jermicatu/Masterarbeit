@@ -11,8 +11,8 @@ from logger_config import logger
 def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
     b_vec = Create_b.b(n_nodes, mix_start, mix_product, gamma, noise)
     # b_vec[0] = b_vec[0] * (-1)
-    #b_vec[1] = b_vec[1] * (-1)
-    #b_vec[2] = b_vec[2] * (-1)  
+    # b_vec[1] = b_vec[1] * (-1)
+    # b_vec[2] = b_vec[2] * (-1)  
     P_mat = Create_P.P(n_nodes, mix_start, mix_product, gamma, noise)
     sol = torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1)
 
@@ -116,8 +116,9 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         plt.ylim(-0.1, 0.5)
         plt.show()"""
 
-        #if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) == False:
-        #    mix = GaussSpliter.add_component(n_nodes, mix, mix_product)
+        if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
+            print("OUT OF MARGIN!")
+            #mix = GaussSpliter.add_component(n_nodes, mix, mix_product)
 
     return mix
 

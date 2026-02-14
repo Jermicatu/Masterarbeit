@@ -35,16 +35,18 @@ def in_margin(n_nodes, mix_approx, mix_product, margin):
 
     nodes, weights = gh_nodes_weights(n_nodes)
     f_p = mix_product.mix1.eval(nodes) * mix_product.mix2.eval(nodes)
+    int_p_1 = (f_p      * torch.exp(nodes**2) * weights).sum(dim=0)
+    f_p = f_p / int_p_1
     f_approx = mix_approx.eval(nodes)
 
     dif = (f_p - f_approx)**2
 
-    d =          (dif             * torch.exp(nodes**2) * weights).sum(dim=0)
-    int_p =      ((f_p ** 2)      * torch.exp(nodes**2) * weights).sum(dim=0)
-    int_approx = ((f_approx ** 2) * torch.exp(nodes**2) * weights).sum(dim=0)
+    d =          (dif           * torch.exp(nodes**2) * weights).sum(dim=0)
+    int_p =      ((f_p**2)      * torch.exp(nodes**2) * weights).sum(dim=0)
+    int_approx = ((f_approx**2) * torch.exp(nodes**2) * weights).sum(dim=0)
 
-    d = d / (int_p + int_approx)
-    # print(d)
+    d = torch.sqrt(d / (int_p + int_approx))
+    print(d)
     if d < margin:
        check = True
     else:
