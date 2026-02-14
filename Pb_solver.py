@@ -102,19 +102,19 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         mix.s = torch.clamp(mix.s, min = 0.01)
         mix.w = mix.w
 
-        """x = torch.linspace(-30, 30, 400)
+        x = torch.linspace(-30, 30, 400)
         
-        f_0 = mix.eval(x)
-        plt.plot(x, f_0, label="f_p")
+        f_approx = mix.eval(x)
+        plt.plot(x, f_approx, label="f_approx")
 
-        f_gamma = mix_product.eval_tilde(x, g, noise)
-        plt.plot(x, f_gamma, label="f_gamma")
+        f_tilde = mix_product.eval_tilde(x, g, noise)
+        plt.plot(x, f_tilde, label="f_tilde")
         plt.legend()
         plt.xlabel("x")
         plt.ylabel("f(x)")
         plt.grid(True)
         plt.ylim(-0.1, 0.5)
-        plt.show()"""
+        plt.show()
 
         if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
             print("OUT OF MARGIN!")
@@ -173,11 +173,11 @@ if __name__ == "__main__":
     f_tild = mix_product.eval_tilde(x, gamma, noise)
     f_p = f_1*f_2
 
-    """
+    
     dx = x[1] - x[0]
     f_p_int = dx * (f_p.sum()- 0.5*f_p[0] - 0.5*f_p[-1])
     f_tild_int = dx * (f_tild.sum()- 0.5*f_tild[0] - 0.5*f_tild[-1])
-    """
+    
 
     plt.plot(x, f_0, label="approximation")
     plt.plot(x, f_1, label="f_1")
@@ -192,7 +192,6 @@ if __name__ == "__main__":
     plt.ylim(-0.1, 0.5)
     plt.show()
 
-    # 22ter 12 uhr
     """
     Questions:
 
