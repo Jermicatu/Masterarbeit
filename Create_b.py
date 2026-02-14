@@ -38,7 +38,7 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     """
     w_start = mix_start.w
     m_start = mix_start.m
-    s_start = mix_start.s
+    s_start = mix_start.s ** 2
     x_expanded = x.view(-1, 1)
         
     factor = (mix_product.mix1.eval_gamma_diff(x, gamma, noise) * mix_product.mix2.eval(x)).view(-1,1) * mix_start.eval_individual(x)

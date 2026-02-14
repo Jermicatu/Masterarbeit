@@ -34,10 +34,10 @@ def big_M(x, mix_start):
 
     x_i = x[:, None]
     mu_i = mix_start.m[None, :]
-    s2 = mix_start.s[None, :]
+    s = mix_start.s[None, :]
     w_i = mix_start.w[None, :]
 
-    s = torch.sqrt(s2)
+    s2 = s**2
     s3 = s2*s
     s4 = s2**2
     s5 = s4*s
@@ -121,12 +121,11 @@ def P_1(mix):
     L = mix.w.size(0)
     mu_i = mix.m[:, None]
     mu_j = mix.m[None, :]
-    sigma_i = mix.s[:, None]
-    sigma_j = mix.s[None, :]
+    sigma_i = mix.s[:, None] ** 2
+    sigma_j = mix.s[None, :] ** 2
     w_i = mix.w[:, None]
     w_j = mix.w[None, :]
 
-    # remember all sigmas are given in squared for (sigma**2)
     s2 = sigma_i + sigma_j
     s2_2 = s2**2
     s2_3 = s2**3
@@ -183,12 +182,11 @@ def P_1_old(mix):
     N = mix.m.shape[0]
     mu_i = mix.m[:, None]
     mu_j = mix.m[None, :]
-    sigma_i = mix.s[:, None]
-    sigma_j = mix.s[None, :]
+    sigma_i = mix.s[:, None] ** 2
+    sigma_j = mix.s[None, :] ** 2
     w_i = mix.w[:, None]
     w_j = mix.w[None, :]
 
-    # remember all sigmas are given in squared for (sigma**2)
     s2 = sigma_i + sigma_j
     s2_2 = s2**2
     s2_3 = s2**3

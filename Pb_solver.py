@@ -102,7 +102,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         mix.s = torch.clamp(mix.s, min = 0.01)
         mix.w = mix.w
 
-        x = torch.linspace(-30, 30, 400)
+        x = torch.linspace(-10, 10, 400)
         
         f_approx = mix.eval(x)
         plt.plot(x, f_approx, label="f_approx")
@@ -191,7 +191,8 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.ylim(-0.1, 0.5)
     plt.show()
-    print("TEST")
+
+
     """
     Questions:
 
