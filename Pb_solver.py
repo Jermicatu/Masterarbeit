@@ -191,7 +191,7 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.ylim(-0.1, 0.5)
     plt.show()
-
+    print("TEST")
     """
     Questions:
 
