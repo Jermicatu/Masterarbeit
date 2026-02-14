@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from logger_config import logger
 
+
 class GaussMixProduct:
     mix1 = None
     mix2 = None
@@ -15,6 +16,7 @@ class GaussMixProduct:
     def eval_tilde(self, x, gamma, noise):
         sol1 = self.mix1.eval_gamma(x, gamma, noise)
         sol2 = self.mix2.eval(x)
+
         return sol1 * sol2
 
 class GaussMix:

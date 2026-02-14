@@ -102,7 +102,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         mix.s = torch.clamp(mix.s, min = 0.01)
         mix.w = mix.w
 
-        x = torch.linspace(-10, 10, 400)
+        """x = torch.linspace(-10, 10, 400)
         
         f_approx = mix.eval(x)
         plt.plot(x, f_approx, label="f_approx")
@@ -114,7 +114,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         plt.ylabel("f(x)")
         plt.grid(True)
         plt.ylim(-0.1, 0.5)
-        plt.show()
+        plt.show()"""
 
         if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
             print("OUT OF MARGIN!")
