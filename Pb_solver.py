@@ -124,12 +124,12 @@ if __name__ == "__main__":
 
     
     w1 = torch.tensor([1.])
-    m1 = torch.tensor([5])
-    s1 = torch.tensor([1.])
+    m1 = torch.tensor([-1.])
+    s1 = torch.tensor([0.5])
 
     w2 = torch.tensor([1.])
-    m2 = torch.tensor([6.])
-    s2 = torch.tensor([1.])
+    m2 = torch.tensor([1.])
+    s2 = torch.tensor([0.5])
 
 
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.])"""
     
     nnodes = 20
-    nsteps = 10
+    nsteps = 20
     gamma = 1.0
     noise = 0.01
     margin = 0.1
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     plt.plot(x, f_1, label="f_1")
     plt.plot(x, f_2, label="f_2")
     plt.plot(x, f_tild, label="f_tilde")
-    plt.plot(x, f_p, label="f_p")
+    plt.plot(x, f_p, label="f_p normalized")
         
     plt.legend()
     plt.xlabel("x")

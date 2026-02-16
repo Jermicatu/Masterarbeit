@@ -228,18 +228,18 @@ def P_1_old(mix):
 def P(n_nodes, mix_start, mix_product, gamma, noise):
     if P_1(mix_start).size() != delta_P(n_nodes, mix_start, mix_product, gamma, noise).size():
         logger.error("P_1 and delta_P have wrong sizes")
-    #logger.debug(f"P_1 is: {P_1(mix_start)}")
-    #logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
+    logger.debug(f"P_1 is: {P_1(mix_start)}")
+    logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)
 
 if __name__ == "__main__":
     w1 = torch.tensor([1.])
     m1 = torch.tensor([1.])
-    s1 = torch.tensor([1.])
+    s1 = torch.tensor([2.])
 
     w2 = torch.tensor([1.])
     m2 = torch.tensor([-1.])
-    s2 = torch.tensor([1.])
+    s2 = torch.tensor([2.])
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
