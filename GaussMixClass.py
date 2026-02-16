@@ -125,7 +125,26 @@ class GaussMix:
         gaussians = coef * exponent
 
         return (w_ * gaussians).sum(dim=1)
-        #return gaussians.sum(dim=1)
+    
+    def eval_gamma_ver2(self, x, gamma, noise):
+        """
+        Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+                @param eta: two dimensional tensor of form [w, mu, sigma]
+                @param gamma: float in range [0,1]
+                @param noise: float 
+        Output: f(x) one dimensional vector of same shape as x where f(x) is a gaussian mix f defined via eta, gamma and noise
+        """
+
+        x = x[:, None]
+        m_ = self.m[None, :]
+        s_ = self.s[None, :] ** 2
+        w_ = self.w[None, :]
+
+        coef = 1.0 / torch.sqrt(2. * math.pi * s_)
+        exponent = torch.exp(-0.5 * (x - m_) ** 2. / s_ )
+        gaussians = (coef * exponent) ** gamma
+
+        return (w_ * gaussians).sum(dim=1)
     
     def eval_gamma_diff(self, x, gamma, noise):
         """
@@ -146,7 +165,26 @@ class GaussMix:
         exponent = torch.exp(-0.5 * (x - m_) ** 2 / (s_*factor))
         gaussians = coef * exponent 
 
-        #return gaussians.sum(dim=1)
+        return (w_ * gaussians).sum(dim=1)
+    
+    def eval_gamma_diff_ver2(self, x, gamma, noise):
+        """
+        Input:  @param x: one dimensional tensor stating the x-values for which we want an output
+                @param eta: two dimensional tensor of form [w, mu, sigma]
+                @param gamma: float in range [0,1]
+                @param noise: float 
+        Output: f'(x) one dimensional vector of same shape as x where f'(x) is a gaussian mix f defined via eta, gamma and noise
+        """
+
+        x = x[:, None]
+        m_ = self.m[None, :]
+        s_ = self.s[None, :] ** 2
+        w_ = self.w[None, :]
+
+        coef = 1.0 / torch.sqrt(2. * math.pi * s_)
+        exponent = torch.exp(-0.5 * (x - m_) ** 2. / s_ )
+        gaussians = torch.log(coef * exponent) * ((coef * exponent) ** gamma)
+
         return (w_ * gaussians).sum(dim=1)
 
 if __name__ == "__main__":

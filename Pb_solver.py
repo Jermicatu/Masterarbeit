@@ -10,26 +10,21 @@ from logger_config import logger
 
 def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
     b_vec = Create_b.b(n_nodes, mix_start, mix_product, gamma, noise)
-    # b_vec[0] = b_vec[0] * (-1)
-    # b_vec[1] = b_vec[1] * (-1)
-    # b_vec[2] = b_vec[2] * (-1)  
     P_mat = Create_P.P(n_nodes, mix_start, mix_product, gamma, noise)
+
     sol = torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1)
 
     cond_num = torch.linalg.cond(P_mat)
     if cond_num > 1e8:  # High condition number = unstable
         logger.error(f"🔥 P_mat is ill-conditioned! κ(P) = {cond_num:.4e}")
         print("Hi")
-    #elif cond_num > 1e4:
-    #    logger.warning(f"⚠️ P_mat moderately ill-conditioned: κ(P) = {cond_num:.4e}")
-    #    print("Hi")
+    elif cond_num > 1e4:
+        logger.warning(f"⚠️ P_mat moderately ill-conditioned: κ(P) = {cond_num:.4e}")
+        print("Hi")
     symmetry_error = torch.norm(P_mat - P_mat.T)
     if symmetry_error > 1e-6:
         logger.warning(f"⚠️ P_mat not symmetric! Error: {symmetry_error:.4f}")
 
-
-    #logger.debug(f"P is: {P_mat}.")
-    #logger.debug(f"b is: {b_vec}.")
 
     n = int(sol.size(0)/3)
     w = torch.zeros(n)
@@ -80,27 +75,21 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         g = gammas[i]
         
         k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
-        logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
-        k1.s = torch.clamp(k1.s, min = 0.01)
+        #logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
         
         k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)
-        logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
-        k2.s = torch.clamp(k2.s, min = 0.01)
+        #logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
         
         k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)
-        logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
-        k3.s = torch.clamp(k3.s, min = 0.01)
+        #logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
         
         k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
-        k4.s = torch.clamp(k4.s, min = 0.01)
-        logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
+        #logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
         logger.debug(f"Change is w={change.w}, m={change.m}, s={change.s}.")
         
         mix = mix + change
-        mix.s = torch.clamp(mix.s, min = 0.01)
-        mix.w = mix.w
 
         """x = torch.linspace(-10, 10, 400)
         
@@ -132,14 +121,17 @@ if __name__ == "__main__":
     m2 = torch.tensor([-2.0, -1.0, 1.0, 2.0])
     s2 = torch.tensor([1.5, 1.0, 1.0, 1.5])"""
 
+
     
     w1 = torch.tensor([1.])
-    m1 = torch.tensor([1.])
+    m1 = torch.tensor([5])
     s1 = torch.tensor([1.])
 
     w2 = torch.tensor([1.])
-    m2 = torch.tensor([-1.])
+    m2 = torch.tensor([6.])
     s2 = torch.tensor([1.])
+
+
 
     """w1 = torch.tensor([0.2, 0.4, 0.2, 0.2])
     m1 = torch.tensor([-3., -1., 1, 3])
@@ -150,7 +142,7 @@ if __name__ == "__main__":
     s2 = torch.tensor([1.])"""
     
     nnodes = 20
-    nsteps = 20
+    nsteps = 10
     gamma = 1.0
     noise = 0.01
     margin = 0.1

@@ -46,7 +46,7 @@ def in_margin(n_nodes, mix_approx, mix_product, margin):
     int_approx = ((f_approx**2) * torch.exp(nodes**2) * weights).sum(dim=0)
 
     d = torch.sqrt(d / (int_p + int_approx))
-    print(d)
+    
     if d < margin:
        check = True
     else:
