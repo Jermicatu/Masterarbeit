@@ -22,6 +22,18 @@ def gh_nodes_weights(n_nodes: int):
 
 def b(n_nodes, mix_start, mix_product, gamma, noise):
     nodes, weights = gh_nodes_weights(n_nodes)
+    """w_stack = torch.cat([mix_start.w, mix_product.mix1.w, mix_product.mix2.w])
+    x_max = torch.max(w_stack)
+    x_min = torch.max(- w_stack)
+
+    s_stack = torch.cat([mix_start.s, mix_product.mix1.s, mix_product.mix2.s])
+    var_max = torch.max(s_stack) ** 2
+
+    x = torch.linspace(x_min + var_max, x_max + var_max, steps=100)
+
+    sol = torch.trapezoid(b_integrand(x, mix_start, mix_product, gamma, noise), x, dim=0)
+
+    print(sol - (b_integrand(nodes, mix_start, mix_product, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0))"""
 
     # n x m * n x 1 * n x 1
     return (b_integrand(nodes, mix_start, mix_product, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
