@@ -32,7 +32,7 @@ def in_margin(n_nodes, mix_approx, mix_product, margin):
         check: boolean that is true is the error is within acceptable range and false if not
         # TODO sollte in margin nicht auch gamma enthalten?
     """
-
+    
     nodes, weights = gh_nodes_weights(n_nodes)
     f_p = mix_product.mix1.eval(nodes) * mix_product.mix2.eval(nodes)
     int_p_1 = (f_p      * torch.exp(nodes**2) * weights).sum(dim=0)
