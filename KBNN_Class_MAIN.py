@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import random
+import GaussMixClass
 
 from torch import tanh as tanh
 from torch import cos as cos
@@ -55,7 +56,7 @@ class Network_Class:
 
     # +1 for the bias
 
-    network[0] = [torch.normal(0, 1, size = (input_size+1, dimensions[0]), dtype=torch.float64), torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
+    network[0] = [torch.normal(0, 1, size = (input_size+1, dimensions[0]), dtype=torch.float64), starting_variance * torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
 
     for i in range(1,len(dimensions)):
       network[i] = [torch.normal(0, 1, size = (dimensions[i-1]+1, dimensions[i]), dtype=torch.float64), starting_variance * torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
@@ -334,6 +335,20 @@ def simpleTestNetwork(network, data, y_1, y_2, scaling):
   plt.ylim(y_1, y_2)
   plt.show()
 
+  mix = GaussMixUncertaintyApproximation(network, torch.tensor([0]))
+
+  x = torch.linspace(-14, 14, 400)
+
+  f_1 = mix.eval(x)
+  plt.plot(x, f_1, label="f_1")
+
+  plt.legend()
+  plt.xlabel("x")
+  plt.ylabel("f(x)")
+  plt.grid(True)
+  plt.show()
+
+
   return None
 
 def testNetwork(network, data):
@@ -393,8 +408,57 @@ def testNetwork(network, data):
   #plt.show()
   return None
 
+def GaussMixUncertaintyApproximation(network: Network_Class, x: torch.tensor) -> GaussMixClass.GaussMix:
+  """
+  Docstring for GaussMixUncertaintyApproximation
+  
+  :param network: Description
+  :type network: Network_Class
+  :param x: Description
+  :type x: torch.tensor
+  :return: Description
+  :rtype: GaussMix
+  """
 
+  z_l = [None]
+  z_l[0] = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([x[0]]), torch.tensor([0.1]))
 
+  # in each layer l
+  for l in range(0, len(network.dimensions)):
+    m = network.network[l][0]
+    s = torch.sqrt(network.network[l][1])
+    f = network.network[l][2]
+
+    # get each a^(l+1)
+    a_l = [None] * network.dimensions[l]
+    for i in range(0, network.dimensions[l]):
+      X_j = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([m[0,i]]), torch.tensor([s[i,0,0]]))
+      a_l[i] = z_l[0].approx_mul(X_j)
+      print(i)
+      if l == 0:
+        for j in range(1, network.input_size):
+          X_j = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([m[j,i]]), torch.tensor([s[i,j,j]]))
+          a_l[i] = a_l[i].approx_add(z_l[j].approx_mul(X_j))
+        j = network.input_size
+        X_j = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([m[j,i]]), torch.tensor([s[i,j,j]]))
+        a_l[i] = a_l[i].approx_add(X_j)
+      else:
+        for j in range(1, network.dimensions[l-1]):
+          X_j = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([m[j,i]]), torch.tensor([s[i,j,j]]))
+          a_l[i] = a_l[i].approx_add(z_l[j].approx_mul(X_j))
+          
+        j = network.dimensions[l-1]
+        X_j = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([m[j,i]]), torch.tensor([s[i,j,j]]))
+        a_l[i] = a_l[i].approx_add(X_j)
+
+    z_l = [None] * network.dimensions[l]
+    for i in range(0, network.dimensions[l]):
+      z_l[i] = a_l[i].approx_activation(f)
+
+  print(z_l[0].w)
+  print(z_l[0].m)
+  print(z_l[i].s)
+  return z_l[0]
 
 scaling = 50
 x_1 = -1

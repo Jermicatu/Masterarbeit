@@ -437,7 +437,7 @@ def test_4():
     mix2 = GaussMix(w2, m2, s2)
     mix3 = GaussMix(w3, m3, s3)
 
-    mix_add = mix1.approx_mul(mix2)
+    mix_mul = mix1.approx_mul(mix2)
 
     x = torch.linspace(-14, 14, 400)
 
@@ -445,13 +445,13 @@ def test_4():
     plt.plot(x, f_1, label="f_1")
 
     f_2 = mix2.eval(x)
-    plt.plot(x, f_2, label="f_3")
+    plt.plot(x, f_2, label="f_2")
 
     f_3 = mix3.eval(x)
     plt.plot(x, f_3, label="f_3")
 
-    f_add = mix_add.eval(x)
-    plt.plot(x, f_add, label="f_add")
+    f_mul = mix_mul.eval(x)
+    plt.plot(x, f_mul, label="f_mul")
 
     plt.legend()
     plt.xlabel("x")
@@ -484,7 +484,7 @@ def test_5():
     plt.plot(x, f_1, label="f_1")
 
     f_2 = mix2.eval(x)
-    plt.plot(x, f_2, label="f_3")
+    plt.plot(x, f_2, label="f_2")
 
     f_3 = mix3.eval(x)
     plt.plot(x, f_3, label="f_3")
