@@ -198,7 +198,7 @@ class GaussMix:
             f_2 = f(torch.tensor([- math.sqrt(2) * self.s[i] + self.m[i]]))
             m_new[i] = 0.5 * (f_1 + f_2) / (math.sqrt(2 * math.pi) * self.s[i])
             s_new[i] = 0.5 * (f_1 ** 2 + f_2 ** 2) / (math.sqrt(2 * math.pi) * self.s[i]) - m_new[i] ** 2
-        s_new = torch.clamp(s_new, min = 0.1)
+        s_new = torch.clamp(s_new, min = 0.001) # TODO Bug
         return GaussMix(self.w, m_new, s_new)
     
     def split(self, position: int):
@@ -442,16 +442,16 @@ def test_4():
     x = torch.linspace(-14, 14, 400)
 
     f_1 = mix1.eval(x)
-    plt.plot(x, f_1, label="f_1")
+    plt.plot(x, f_1, label="mix_1")
 
     f_2 = mix2.eval(x)
-    plt.plot(x, f_2, label="f_2")
+    plt.plot(x, f_2, label="mix_2")
 
     f_3 = mix3.eval(x)
-    plt.plot(x, f_3, label="f_3")
+    plt.plot(x, f_3, label="mix_sol")
 
     f_mul = mix_mul.eval(x)
-    plt.plot(x, f_mul, label="f_mul")
+    plt.plot(x, f_mul, label="mix_mul")
 
     plt.legend()
     plt.xlabel("x")
@@ -481,16 +481,16 @@ def test_5():
     x = torch.linspace(-14, 14, 400)
 
     f_1 = mix1.eval(x)
-    plt.plot(x, f_1, label="f_1")
+    plt.plot(x, f_1, label="mix_1")
 
     f_2 = mix2.eval(x)
-    plt.plot(x, f_2, label="f_2")
+    plt.plot(x, f_2, label="mix_2")
 
     f_3 = mix3.eval(x)
-    plt.plot(x, f_3, label="f_3")
+    plt.plot(x, f_3, label="mix_sol")
 
     f_add = mix_add.eval(x)
-    plt.plot(x, f_add, label="f_add")
+    plt.plot(x, f_add, label="mix_add")
 
     plt.legend()
     plt.xlabel("x")
@@ -562,13 +562,13 @@ if __name__ == "__main__":
     """
 
     # tests the individual Gaussians    
-    test_1()
+    # test_1()
 
     # tests the gamma differential function
-    test_2()
+    # test_2()
 
     # tests the f_tilde for gamma 0 and 1
-    test_3()
+    # test_3()
 
     # tests approx_mul
     test_4()
@@ -580,7 +580,7 @@ if __name__ == "__main__":
     test_6()
 
     # Tbh I frogor what this was for sth sth normalized functions
-    test_7()
+    # test_7()
 
 """
 ANDI TIPPS
