@@ -240,6 +240,16 @@ class GaussMix:
 
         # Weighted sum over components
         return (w_ * gaussians).sum(dim=1)
+    
+    def eval_random(self):
+        m_ = self.m
+        s_ = self.s
+        w_ = self.w
+
+        dist = torch.distributions.Normal(m_, s_)
+        sample = dist.sample() * w_
+
+        return sample.sum(dim=0).item()
 
     def eval_individual(self, x):
         """
@@ -555,11 +565,22 @@ def test_7():
     plt.grid(True)
     plt.show()
 
+def test_8():
+    w1 = torch.tensor([0.5, 0.5])
+    m1 = torch.tensor([-2., 2.])
+    s1 = torch.tensor([1., 1.])
+
+    mix1 = GaussMix(w1, m1, s1)
+
+    print(mix1.eval_random())
+
 
 if __name__ == "__main__":
     """
     Test here
     """
+
+    test_8()
 
     # tests the individual Gaussians    
     # test_1()
