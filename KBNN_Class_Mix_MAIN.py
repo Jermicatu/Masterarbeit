@@ -49,15 +49,12 @@ class KBBN_mix_class:
                     w[l][j][i] = weights[l][j][i].eval_random()
 
         layer_input = x
-        print(layer_input)
         for l in range(0, len(dimensions) - 1):
             layer_output = torch.zeros(dimensions[l+1])
             f = functions[l]
             for j in range(0, dimensions[l+1]):
                 layer_output[j] = torch.matmul(layer_input, torch.tensor(w[l][j]))
             layer_input = f(layer_output)
-            print(layer_output)
-            print(layer_input)
 
         return layer_input
     
@@ -74,5 +71,19 @@ def test_1():
 
     print(my_KBNN.static_output(x))
 
+def test_2(size: int):
+    dimensions = [1, 100, 1]
+    functions = [relu, id]
+    my_KBNN = KBBN_mix_class(dimensions, functions)
+
+    x = torch.tensor([1.])
+    y = torch.zeros(size)
+
+    for i in range(0, size):
+        y[i] = my_KBNN.static_output(x).item()
+
+    plt.hist(y, bins=20)
+    plt.show()
+
 if __name__ == "__main__":
-    test_1()
+    test_2(1000)
