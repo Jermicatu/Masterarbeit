@@ -58,12 +58,37 @@ class KBBN_mix_class:
 
         return layer_input
     
-    def uncertainty_quantification(self):
+    def uncertainty_quantification(self, x: torch.tensor) -> GaussMixClass.GaussMix:
+        dimensions = self.dimensions
+        weights = self.weights
+        f = self.functions
 
-        return NotImplementedError
+        z_l = [None] * dimensions[0]
+        z_l[0] = GaussMixClass.GaussMix(torch.tensor([1]), torch.tensor([x[0]]), torch.tensor([0.1]))
+
+        # in each layer l
+        for l in range(0, len(dimensions)-1):
+            a_l = [None] * dimensions[l+1]
+
+            # get each a^(l+1)
+            for j in range(0, dimensions[l+1]):
+                a_l[j] = z_l[0].approx_mul(weights[l][j][0])
+                for i in range(0, dimensions[l]):
+                    a_l[j] = a_l[j].approx_add(z_l[i].approx_mul(weights[l][j][i]))
+
+            z_l = [None] * dimensions[l+1]
+
+            # get each z^(l+1)
+            for j in range(0, dimensions[l+1]):
+                z_l[j] = a_l[j].approx_activation(f[l])
+
+        print(z_l[0].w)
+        print(z_l[0].m)
+        print(z_l[0].s)
+        return z_l[0]
     
 def test_1(): 
-    dimensions = [1, 100, 1]
+    dimensions = [1, 3, 1]
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
@@ -72,7 +97,7 @@ def test_1():
     print(my_KBNN.static_output(x))
 
 def test_2(size: int):
-    dimensions = [1, 100, 1]
+    dimensions = [1, 3, 1]
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
@@ -85,5 +110,19 @@ def test_2(size: int):
     plt.hist(y, bins=20)
     plt.show()
 
+def test_3():
+    dimensions = [1, 3, 1]
+    functions = [relu, id]
+    my_KBNN = KBBN_mix_class(dimensions, functions)
+
+    mix = my_KBNN.uncertainty_quantification(torch.tensor([1.]))
+
+    x = torch.linspace(-5, 5, 400)
+
+    f_1 = mix.eval(x)
+    plt.plot(x, f_1, label="mix_1")
+    plt.show()
+
 if __name__ == "__main__":
     test_2(1000)
+    test_3()
