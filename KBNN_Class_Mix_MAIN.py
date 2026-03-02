@@ -83,9 +83,6 @@ class KBBN_mix_class:
             for j in range(0, dimensions[l+1]):
                 z_l[j] = a_l[j].approx_activation(f[l])
 
-        # print(z_l[0].w)
-        # print(z_l[0].m)
-        # print(z_l[0].s)
         return z_l[0]
     
 def test_1(): 
