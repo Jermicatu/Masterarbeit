@@ -27,6 +27,7 @@ class KBBN_mix_class:
         weights = [[[None for _ in range(dimensions[l])]
                         for _ in range(dimensions[l + 1])]
                         for l in range(len(dimensions) - 1)]
+
         for l in range(0, len(dimensions) - 1):
             for j in range(0, dimensions[l+1]):
                 for i in range(0, dimensions[l]):
@@ -35,7 +36,6 @@ class KBBN_mix_class:
         self.weights = weights
 
     def static_output(self, x: torch.tensor):
-        # TODO add Bias
         dimensions = self.dimensions
         weights = self.weights
         functions = self.functions
@@ -124,5 +124,6 @@ def test_3():
     plt.show()
 
 if __name__ == "__main__":
+    test_1()
     test_2(1000)
     test_3()
