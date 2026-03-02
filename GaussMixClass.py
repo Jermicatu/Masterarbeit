@@ -264,7 +264,7 @@ class GaussMix:
         
         return f_i
     
-    def eval_gamma(self, x, gamma, noise):
+    def eval_gamma_ver2(self, x, gamma, noise):
         """
         Input:  @param x: one dimensional tensor stating the x-values for which we want an output
                 @param eta: two dimensional tensor of form [w, mu, sigma]
@@ -286,7 +286,7 @@ class GaussMix:
 
         return (w_ * gaussians).sum(dim=1)
     
-    def eval_gamma_ver2(self, x, gamma, noise):
+    def eval_gamma(self, x, gamma, noise):
         """
         Input:  @param x: one dimensional tensor stating the x-values for which we want an output
                 @param eta: two dimensional tensor of form [w, mu, sigma]
@@ -306,7 +306,7 @@ class GaussMix:
 
         return (w_ * gaussians).sum(dim=1)
     
-    def eval_gamma_diff(self, x, gamma, noise):
+    def eval_gamma_diff_ver2(self, x, gamma, noise):
         """
         Input:  @param x: one dimensional tensor stating the x-values for which we want an output
                 @param eta: two dimensional tensor of form [w, mu, sigma]
@@ -327,7 +327,7 @@ class GaussMix:
 
         return (w_ * gaussians).sum(dim=1)
     
-    def eval_gamma_diff_ver2(self, x, gamma, noise):
+    def eval_gamma_diff(self, x, gamma, noise):
         """
         Input:  @param x: one dimensional tensor stating the x-values for which we want an output
                 @param eta: two dimensional tensor of form [w, mu, sigma]
