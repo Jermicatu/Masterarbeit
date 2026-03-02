@@ -34,7 +34,7 @@ def b(n_nodes, mix_start, mix_product, gamma, noise):
     sol = torch.trapezoid(b_integrand(x, mix_start, mix_product, gamma, noise), x, dim=0)
 
     print(sol - (b_integrand(nodes, mix_start, mix_product, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0))"""
-
+    print(b_integrand(nodes, mix_start, mix_product, gamma, noise))
     # n x m * n x 1 * n x 1
     return (b_integrand(nodes, mix_start, mix_product, gamma, noise) * torch.exp(nodes**2).view(-1, 1) * weights.view(-1, 1)).sum(dim=0)
 

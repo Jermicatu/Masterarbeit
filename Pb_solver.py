@@ -91,7 +91,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         
         mix = mix + change
 
-        x = torch.linspace(-10, 10, 400)
+        """x = torch.linspace(-10, 10, 400)
         
         f_approx = mix.eval(x)
         plt.plot(x, f_approx, label="f_approx")
@@ -103,7 +103,7 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         plt.ylabel("f(x)")
         plt.grid(True)
         plt.ylim(-0.1, 1.0)
-        plt.show()
+        plt.show()"""
 
         if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
             print("OUT OF MARGIN!")
@@ -124,11 +124,11 @@ if __name__ == "__main__":
 
     
     w1 = torch.tensor([1.])
-    m1 = torch.tensor([1.])
+    m1 = torch.tensor([12.])
     s1 = torch.tensor([1.0])
 
     w2 = torch.tensor([1.])
-    m2 = torch.tensor([-1.])
+    m2 = torch.tensor([10.])
     s2 = torch.tensor([1.0])
 
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     logger.debug(f"Output Gauss mix is w={new_mix.w}, m={new_mix.m}, s={new_mix.s}.")
 
-    x = torch.linspace(-10, 10, 400)
+    x = torch.linspace(5, 15, 400)
     f_0 = new_mix.eval(x)
     f_1 = mix_product.mix1.eval(x)
     f_2 = mix_product.mix2.eval(x)
