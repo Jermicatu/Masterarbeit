@@ -24,13 +24,13 @@ class KBBN_mix_class:
 
         assert len(dimensions) - len(functions) == 1, f"dimensions should have one more entry then functions"
 
-        weights = [[[None for _ in range(dimensions[l])]
+        weights = [[[None for _ in range(dimensions[l] + 1)]
                         for _ in range(dimensions[l + 1])]
                         for l in range(len(dimensions) - 1)]
 
         for l in range(0, len(dimensions) - 1):
             for j in range(0, dimensions[l+1]):
-                for i in range(0, dimensions[l]):
+                for i in range(0, dimensions[l] + 1):
                     weights[l][j][i] = GaussMixClass.GaussMix(torch.tensor([0.5, 0.5]), torch.tensor([-1., 1.]), torch.tensor([1., 1.]))
 
         self.weights = weights
@@ -40,12 +40,12 @@ class KBBN_mix_class:
         weights = self.weights
         functions = self.functions
 
-        w = [[[None for _ in range(dimensions[l])]
+        w = [[[None for _ in range(dimensions[l] + 1)]
                     for _ in range(dimensions[l + 1])]
                     for l in range(len(dimensions) - 1)]
         for l in range(0, len(dimensions) - 1):
             for j in range(0, dimensions[l+1]):
-                for i in range(0, dimensions[l]):
+                for i in range(0, dimensions[l] + 1):
                     w[l][j][i] = weights[l][j][i].eval_random()
 
         layer_input = x
@@ -53,7 +53,7 @@ class KBBN_mix_class:
             layer_output = torch.zeros(dimensions[l+1])
             f = functions[l]
             for j in range(0, dimensions[l+1]):
-                layer_output[j] = torch.matmul(layer_input, torch.tensor(w[l][j]))
+                layer_output[j] = torch.matmul(layer_input, torch.tensor(w[l][j][0:dimensions[l]])) + w[l][j][-1] # Bias
             layer_input = f(layer_output)
 
         return layer_input
@@ -75,6 +75,7 @@ class KBBN_mix_class:
                 a_l[j] = z_l[0].approx_mul(weights[l][j][0])
                 for i in range(0, dimensions[l]):
                     a_l[j] = a_l[j].approx_add(z_l[i].approx_mul(weights[l][j][i]))
+                a_l[j] = a_l[j].approx_add(weights[l][j][-1]) # Bias
 
             z_l = [None] * dimensions[l+1]
 
@@ -82,9 +83,9 @@ class KBBN_mix_class:
             for j in range(0, dimensions[l+1]):
                 z_l[j] = a_l[j].approx_activation(f[l])
 
-        print(z_l[0].w)
-        print(z_l[0].m)
-        print(z_l[0].s)
+        # print(z_l[0].w)
+        # print(z_l[0].m)
+        # print(z_l[0].s)
         return z_l[0]
     
 def test_1(): 
@@ -101,7 +102,7 @@ def test_2(size: int):
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
-    x = torch.tensor([1.])
+    x = torch.tensor([10.])
     y = torch.zeros(size)
 
     for i in range(0, size):
@@ -115,12 +116,21 @@ def test_3():
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
-    mix = my_KBNN.uncertainty_quantification(torch.tensor([1.]))
+    mix = my_KBNN.uncertainty_quantification(torch.tensor([10.]))
 
-    x = torch.linspace(-5, 5, 400)
+    x = torch.linspace(-50, 50, 400)
 
     f_1 = mix.eval(x)
     plt.plot(x, f_1, label="mix_1")
+
+    print("================================")
+    print(mix.m.size(0))
+
+    plt.legend()
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.ylim((0, 0.025))
+    plt.grid(True)
     plt.show()
 
 if __name__ == "__main__":

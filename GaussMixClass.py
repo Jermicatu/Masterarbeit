@@ -194,11 +194,11 @@ class GaussMix:
         s_new = torch.zeros(size_1)
             
         for i in range(0, size_1):
-            f_1 = f(torch.tensor([math.sqrt(2) * self.s[i] + self.m[i]]))
-            f_2 = f(torch.tensor([- math.sqrt(2) * self.s[i] + self.m[i]]))
-            m_new[i] = 0.5 * (f_1 + f_2) / (math.sqrt(2 * math.pi) * self.s[i])
-            s_new[i] = 0.5 * (f_1 ** 2 + f_2 ** 2) / (math.sqrt(2 * math.pi) * self.s[i]) - m_new[i] ** 2
-        s_new = torch.clamp(s_new, min = 0.001) # TODO Bug
+            f_1 = f(torch.tensor([self.s[i] + self.m[i]]))
+            f_2 = f(torch.tensor([- self.s[i] + self.m[i]]))
+            m_new[i] = 0.5 * (f_1      + f_2)
+            s_new[i] = 0.5 * (f_1 ** 2 + f_2 ** 2) - m_new[i] ** 2
+        s_new = torch.clamp(s_new, min = 0.01)
         return GaussMix(self.w, m_new, s_new)
     
     def split(self, position: int):
@@ -347,6 +347,8 @@ class GaussMix:
 
         return (w_ * gaussians).sum(dim=1)
     
+def id(x):
+    return x
 
 def test_1():
     w1 = torch.tensor([0.3, 0.4, 0.3])
@@ -510,13 +512,13 @@ def test_5():
 
 def test_6():
     w1 = torch.tensor([0.5, 0.5])
-    m1 = torch.tensor([-2., 2.])
+    m1 = torch.tensor([-3., 3.])
     s1 = torch.tensor([1., 1.])
 
     mix1 = GaussMix(w1, m1, s1)
     relu = torch.relu
 
-    mix_actiation = mix1.approx_activation(relu)
+    mix_actiation = mix1.approx_activation(id)
 
     x = torch.linspace(-14, 14, 400)
 
@@ -525,6 +527,15 @@ def test_6():
 
     f_activation = mix_actiation.eval(x)
     plt.plot(x, f_activation, label="f_activation")
+
+    print(mix_actiation.w)
+    print(mix_actiation.m)
+    print(mix_actiation.s)
+
+    individual = mix_actiation.eval_individual(x)
+
+    for i in range(0, individual.size(1)):
+        plt.plot(x, individual[:,i], "r--", label="f_activation individual")
 
     plt.legend()
     plt.xlabel("x")
@@ -592,10 +603,10 @@ if __name__ == "__main__":
     # test_3()
 
     # tests approx_mul
-    test_4()
+    # test_4()
 
     # tests approx_add
-    test_5()
+    # test_5()
 
     # tests approx_activation
     test_6()
