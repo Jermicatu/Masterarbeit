@@ -3,6 +3,8 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import GaussMixClass
+from scipy.integrate import quad, quad_vec
+
 from logger_config import logger
 
 def gh_nodes_weights(n_nodes: int):
@@ -91,6 +93,36 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
         
     return stacked.permute(2,0,1).reshape(-1,x.size(0)).T
 
+def b_simple(mix_start, mix_product, gamma, noise):
+    res, err = quad_vec(lambda x: b_integrand_simple(x, mix_start, mix_product, gamma, noise), -np.inf, np.inf)
+    return res
+
+def b_integrand_simple(x, mix_start, mix_product, gamma, noise):
+    """
+    Input:  @param x: float
+            @param eta_1: two dimensional tensor of form [w_1, mu_1, sigma_1]
+            @param eta_2: two dimensional tensor of form [w_2, mu_2, sigma_2]
+            @param eta_3: two dimensional tensor of form [w_3, mu_3, sigma_3]
+            @param gamma: float in range [0,1]
+            @param noise: float 
+    Output: the integrand b
+    """
+    w_start = mix_start.w
+    m_start = mix_start.m
+    s_start = mix_start.s ** 2
+    x_torch = torch.tensor([x])
+        
+    factor = (mix_product.mix1.eval_gamma_diff(x_torch, gamma, noise) * mix_product.mix2.eval(x_torch)).view(-1,1) * mix_start.eval_individual(x_torch)
+    factor = factor.squeeze(0)
+
+    term1 = (w_start**(-1)) * factor
+    term2 = ((x_torch - m_start) / s_start ) * factor
+    term3 = (((x_torch - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
+
+    stacked = torch.stack([term1, term2, term3], dim=1).flatten()
+
+    print("TODO: is stacked what you want?")
+    return stacked
 
 if __name__ == "__main__":
 
@@ -98,9 +130,9 @@ if __name__ == "__main__":
     m1 = torch.tensor([-1.])
     s1 = torch.tensor([1.])
 
-    w2 = torch.tensor([0.1])
-    m2 = torch.tensor([1.])
-    s2 = torch.tensor([1.])
+    w2 = torch.tensor([0.5, 0.5])
+    m2 = torch.tensor([1., -1.])
+    s2 = torch.tensor([1., 1.])
 
     nnodes = 2
     nsteps = 10
@@ -114,4 +146,5 @@ if __name__ == "__main__":
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
 
-    b(nnodes, mix_start, mix_product, gamma, noise)
+    print(b(nnodes, mix_start, mix_product, gamma, noise))
+    print(b_simple(mix_start, mix_product, gamma, noise))
