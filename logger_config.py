@@ -31,6 +31,10 @@ def setup_logger(name="gaussian_product", log_file="debug.log"):
     # Add handlers
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+
+    # Suppress torchquad logs
+    logging.getLogger("torchquad").setLevel(logging.WARNING)
+    logging.getLogger("torchquad").propagate = False
     
     return logger
 

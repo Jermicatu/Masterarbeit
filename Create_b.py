@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import GaussMixClass
 from scipy.integrate import quad, quad_vec
-
 from logger_config import logger
+import os
+os.environ["LOGURU_LEVEL"] = "WARNING"
+from torchquad import Simpson
 
 def gh_nodes_weights(n_nodes: int):
     """
@@ -112,8 +114,8 @@ def b_integrand_simple(x, mix_start, mix_product, gamma, noise):
     s_start = mix_start.s ** 2
     x_torch = torch.tensor([x])
         
-    factor = (mix_product.mix1.eval_gamma_diff(x_torch, gamma, noise) * mix_product.mix2.eval(x_torch)).view(-1,1) * mix_start.eval_individual(x_torch)
-    factor = factor.squeeze(0)
+    factor = (mix_product.mix1.eval_gamma_diff(x_torch, gamma, noise) * mix_product.mix2.eval(x_torch)) * mix_start.eval_individual(x_torch).squeeze(0)
+
 
     term1 = (w_start**(-1)) * factor
     term2 = ((x_torch - m_start) / s_start ) * factor
@@ -121,20 +123,28 @@ def b_integrand_simple(x, mix_start, mix_product, gamma, noise):
 
     stacked = torch.stack([term1, term2, term3], dim=1).flatten()
 
-    print("TODO: is stacked what you want?")
+    #print("TODO: is stacked what you want?")
+    #print(mix_product.mix1.eval_gamma_diff(x_torch, gamma, noise))
+    #print(mix_product.mix2.eval(x_torch).view(-1,1))
+    #print(mix_start.eval_individual(x_torch))
+    #print(factor)
+    #print(term1)
+    #print(term2)
+    #print(term3)
+    #print(stacked)
     return stacked
 
 if __name__ == "__main__":
 
     w1 = torch.tensor([1.])
-    m1 = torch.tensor([-1.])
+    m1 = torch.tensor([1.])
     s1 = torch.tensor([1.])
 
-    w2 = torch.tensor([0.5, 0.5])
-    m2 = torch.tensor([1., -1.])
-    s2 = torch.tensor([1., 1.])
+    w2 = torch.tensor([1.])
+    m2 = torch.tensor([0.])
+    s2 = torch.tensor([1.])
 
-    nnodes = 2
+    nnodes = 20
     nsteps = 10
     gamma = 1.0
     noise = 0.01
@@ -145,6 +155,43 @@ if __name__ == "__main__":
 
     mix_start = GaussMixClass.GaussMix(w2, m2, s2)
     mix_product = GaussMixClass.GaussMixProduct(w1, m1, s1, w2, m2, s2)
+    
+    x_value = 0
+    x = torch.tensor([x_value])
 
-    print(b(nnodes, mix_start, mix_product, gamma, noise))
-    print(b_simple(mix_start, mix_product, gamma, noise))
+
+    # pip install torchquad
+    from torchquad import Simpson
+    import torch
+
+    def b_torchquad(mix_start, mix_product, gamma, noise, N=10001):
+        """GPU-accelerated adaptive Simpson integration"""
+        simpson = Simpson()
+    
+        # Determine integration domain from Gaussian parameters
+        all_means = torch.cat([mix_start.m, mix_product.mix1.m, mix_product.mix2.m])
+        all_stds = torch.cat([mix_start.s, mix_product.mix1.s, mix_product.mix2.s])
+    
+        a = (all_means - 6 * all_stds).min().item()
+        b = (all_means + 6 * all_stds).max().item()
+    
+        # Integration domain
+        integration_domain = [[a, b]]
+    
+        def integrand_fn(x):
+            # x shape: [N, 1] for torchquad
+            return b_integrand(x.squeeze(), mix_start, mix_product, gamma, noise)
+    
+        result = simpson.integrate(
+            fn=integrand_fn,
+            dim=1,
+            N=N,
+            integration_domain=integration_domain
+        )
+    
+        return result
+    
+
+    print(b_integrand(x, mix_start, mix_product, gamma, noise))
+    # print(b_integrand_simple(x_value, mix_start, mix_product, gamma, noise))
+    print(b_torchquad(mix_start, mix_product, gamma, noise))
