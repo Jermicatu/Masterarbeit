@@ -124,11 +124,11 @@ if __name__ == "__main__":
 
     
     w1 = torch.tensor([1.])
-    m1 = torch.tensor([12.])
+    m1 = torch.tensor([120.])
     s1 = torch.tensor([1.0])
 
     w2 = torch.tensor([1.])
-    m2 = torch.tensor([10.])
+    m2 = torch.tensor([121.])
     s2 = torch.tensor([1.0])
 
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
     logger.debug(f"Output Gauss mix is w={new_mix.w}, m={new_mix.m}, s={new_mix.s}.")
 
-    x = torch.linspace(5, 15, 400)
+    x = torch.linspace(115, 125, 400)
     f_0 = new_mix.eval(x)
     f_1 = mix_product.mix1.eval(x)
     f_2 = mix_product.mix2.eval(x)
