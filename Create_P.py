@@ -5,6 +5,10 @@ import numpy as np
 import GaussMixClass
 from logger_config import logger
 
+import os
+os.environ["LOGURU_LEVEL"] = "WARNING"
+from torchquad import Simpson
+
 def gh_nodes_weights(n_nodes: int):
     """
     Input:  @param n_nodes: number of nodes the integration uses
@@ -110,6 +114,33 @@ def delta_P(n_nodes, mix_start, mix_product, gamma, noise):
     nodes, weights = gh_nodes_weights(n_nodes)
 
     return (delta_P_integrand(nodes, mix_start, mix_product, gamma, noise) * torch.exp(nodes**2).view(-1, 1, 1) * weights.view(-1, 1, 1)).sum(dim=0)
+
+def delta_P_torchquad(mix_start, mix_product, gamma, noise, N=1001):
+    """GPU-accelerated adaptive Simpson integration"""
+    simpson = Simpson()
+    
+    # Determine integration domain from Gaussian parameters
+    all_means = torch.cat([mix_start.m, mix_product.mix1.m, mix_product.mix2.m])
+    all_stds = torch.cat([mix_start.s, mix_product.mix1.s, mix_product.mix2.s])
+    
+    a = (all_means - 6 * all_stds).min().item()
+    b = (all_means + 6 * all_stds).max().item()
+    
+    # Integration domain
+    integration_domain = [[a, b]]
+    
+    def integrand_fn(x):
+        # x shape: [N, 1] for torchquad
+        return delta_P_integrand(x.squeeze(), mix_start, mix_product, gamma, noise)
+    
+    result = simpson.integrate(
+        fn=integrand_fn,
+        dim=1,
+        N=N,
+        integration_domain=integration_domain
+    )
+    
+    return result
 
 def P_1(mix):
     """
@@ -231,6 +262,9 @@ def P(n_nodes, mix_start, mix_product, gamma, noise):
     logger.debug(f"P_1 is: {P_1(mix_start)}")
     logger.debug(f"delta_P is: {delta_P(n_nodes, mix_start, mix_product, gamma, noise)}")
     return P_1(mix_start) + delta_P(n_nodes, mix_start, mix_product, gamma, noise)
+
+def P_torchquad(mix_start, mix_product, gamma, noise):
+    return P_1(mix_start) + delta_P_torchquad(mix_start, mix_product, gamma, noise)
 
 if __name__ == "__main__":
     w1 = torch.tensor([1.])

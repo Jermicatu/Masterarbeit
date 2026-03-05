@@ -63,35 +63,7 @@ def b_integrand(x, mix_start, mix_product, gamma, noise):
     term2 = ((x_expanded - m_start) / s_start ) * factor
     term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
 
-
-    # TODO DELETE THIS
-    #x = torch.linspace(-30, 30, 400)
-    #x_expanded = x.view(-1, 1)
-    #factor = (mix_product.mix1.eval_gamma_diff(x, gamma, noise) * mix_product.mix2.eval(x)).view(-1,1) * mix_start.eval_individual(x)
-#
-#    term1 = (w_start**(-1)).expand(x_expanded.shape[0], -1) * factor
-#    term2 = ((x_expanded - m_start) / s_start ) * factor
-#    term3 = (((x_expanded - m_start)**2 - (s_start)) / (s_start ** (3/2))) * factor
-#        
-#    plt.plot(x, term1, label="term1(x)")
-#    plt.legend()
-#    plt.xlabel("x")
-#    plt.ylabel("f(x)")
-#    plt.grid(True)
-#    plt.show()
-    # TODO DELETE THIS
-    
-    # stacked_new = torch.zeros(term1.size(0), term1.size(1) * 3)
-    
-    #for i in range(0, term1.size(0)):
-    #    for j in range(0, term1.size(1)):
-    #        stacked_new[i, 3*j    ] = term1[i,j]
-    #        stacked_new[i, 3*j + 1] = term2[i,j]
-    #        stacked_new[i, 3*j + 2] = term3[i,j]
-
     stacked = torch.cat([term1.unsqueeze(0), term2.unsqueeze(0), term3.unsqueeze(0)], dim=0)
-
-    #print(stacked_new - stacked.permute(2,0,1).reshape(-1,x.size(0)).T)
         
     return stacked.permute(2,0,1).reshape(-1,x.size(0)).T
 
@@ -123,16 +95,34 @@ def b_integrand_simple(x, mix_start, mix_product, gamma, noise):
 
     stacked = torch.stack([term1, term2, term3], dim=1).flatten()
 
-    #print("TODO: is stacked what you want?")
-    #print(mix_product.mix1.eval_gamma_diff(x_torch, gamma, noise))
-    #print(mix_product.mix2.eval(x_torch).view(-1,1))
-    #print(mix_start.eval_individual(x_torch))
-    #print(factor)
-    #print(term1)
-    #print(term2)
-    #print(term3)
-    #print(stacked)
     return stacked
+
+def b_torchquad(mix_start, mix_product, gamma, noise, N=1001):
+    """GPU-accelerated adaptive Simpson integration"""
+    simpson = Simpson()
+    
+    # Determine integration domain from Gaussian parameters
+    all_means = torch.cat([mix_start.m, mix_product.mix1.m, mix_product.mix2.m])
+    all_stds = torch.cat([mix_start.s, mix_product.mix1.s, mix_product.mix2.s])
+    
+    a = (all_means - 6 * all_stds).min().item()
+    b = (all_means + 6 * all_stds).max().item()
+    
+    # Integration domain
+    integration_domain = [[a, b]]
+    
+    def integrand_fn(x):
+        # x shape: [N, 1] for torchquad
+        return b_integrand(x.squeeze(), mix_start, mix_product, gamma, noise)
+    
+    result = simpson.integrate(
+        fn=integrand_fn,
+        dim=1,
+        N=N,
+        integration_domain=integration_domain
+    )
+    
+    return result
 
 if __name__ == "__main__":
 
@@ -158,39 +148,6 @@ if __name__ == "__main__":
     
     x_value = 0
     x = torch.tensor([x_value])
-
-
-    # pip install torchquad
-    from torchquad import Simpson
-    import torch
-
-    def b_torchquad(mix_start, mix_product, gamma, noise, N=10001):
-        """GPU-accelerated adaptive Simpson integration"""
-        simpson = Simpson()
-    
-        # Determine integration domain from Gaussian parameters
-        all_means = torch.cat([mix_start.m, mix_product.mix1.m, mix_product.mix2.m])
-        all_stds = torch.cat([mix_start.s, mix_product.mix1.s, mix_product.mix2.s])
-    
-        a = (all_means - 6 * all_stds).min().item()
-        b = (all_means + 6 * all_stds).max().item()
-    
-        # Integration domain
-        integration_domain = [[a, b]]
-    
-        def integrand_fn(x):
-            # x shape: [N, 1] for torchquad
-            return b_integrand(x.squeeze(), mix_start, mix_product, gamma, noise)
-    
-        result = simpson.integrate(
-            fn=integrand_fn,
-            dim=1,
-            N=N,
-            integration_domain=integration_domain
-        )
-    
-        return result
-    
 
     print(b_integrand(x, mix_start, mix_product, gamma, noise))
     # print(b_integrand_simple(x_value, mix_start, mix_product, gamma, noise))

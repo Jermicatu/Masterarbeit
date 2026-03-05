@@ -9,8 +9,8 @@ import GaussSpliter
 from logger_config import logger
 
 def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
-    b_vec = Create_b.b(n_nodes, mix_start, mix_product, gamma, noise)
-    P_mat = Create_P.P(n_nodes, mix_start, mix_product, gamma, noise)
+    b_vec = Create_b.b_torchquad(mix_start, mix_product, gamma, noise)
+    P_mat = Create_P.P_torchquad(mix_start, mix_product, gamma, noise)
 
     sol = torch.linalg.solve(P_mat, b_vec.unsqueeze(-1)).squeeze(-1)
 
