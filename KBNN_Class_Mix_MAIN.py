@@ -99,7 +99,7 @@ def test_2(size: int):
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
-    x = torch.tensor([10.])
+    x = torch.tensor([1.])
     y = torch.zeros(size)
 
     for i in range(0, size):
@@ -113,24 +113,30 @@ def test_3():
     functions = [relu, id]
     my_KBNN = KBBN_mix_class(dimensions, functions)
 
-    mix = my_KBNN.uncertainty_quantification(torch.tensor([10.]))
+    mix = my_KBNN.uncertainty_quantification(torch.tensor([1.]))
 
-    x = torch.linspace(-50, 50, 400)
+    x = torch.linspace(-60, 60, 400)
 
     f_1 = mix.eval(x)
     plt.plot(x, f_1, label="mix_1")
 
     print("================================")
     print(mix.m.size(0))
+    print(torch.sum(mix.w))
+
+    dx = x[1] - x[0]
+    f_1_int = dx * (f_1.sum() - 0.5*f_1[0] - 0.5*f_1[-1])
+    print(f_1_int)
 
     plt.legend()
     plt.xlabel("x")
     plt.ylabel("f(x)")
-    plt.ylim((0, 0.025))
+    # plt.ylim((0, 0.025))
     plt.grid(True)
     plt.show()
 
 if __name__ == "__main__":
-    test_1()
+    # creatze histogram
     test_2(1000)
+    # create prediction
     test_3()
