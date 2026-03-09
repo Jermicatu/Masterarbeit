@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from logger_config import logger
 
+DEFAULT_MAX_MIX = 100
 
 class GaussMixProduct:
     mix1 = None
     mix2 = None
 
     def __init__(self, weight1: torch.tensor, mean1: torch.tensor, sigma1: torch.tensor, 
-                 weight2: torch.tensor, mean2: torch.tensor, sigma2: torch.tensor):
+                 weight2: torch.tensor, mean2: torch.tensor, sigma2: torch.tensor, max_mix: int = DEFAULT_MAX_MIX):
         """
         Docstring for __init__
         
@@ -27,9 +28,11 @@ class GaussMixProduct:
         :type mean2: torch.tensor
         :param sigma2: Description
         :type sigma2: torch.tensor
+        :param max_mix: Description
+        :type Max_mix: int
         """
-        self.mix1 = GaussMix(weight1, mean1, sigma1)
-        self.mix2 = GaussMix(weight2, mean2, sigma2)
+        self.mix1 = GaussMix(weight1, mean1, sigma1, max_mix)
+        self.mix2 = GaussMix(weight2, mean2, sigma2, max_mix)
 
     def eval_tilde(self, x: torch.tensor, gamma: float, noise: float) -> torch.tensor:
         """
@@ -55,7 +58,7 @@ class GaussMix:
     m = None
     s = None
 
-    def __init__(self, weight: torch.tensor, mean: torch.tensor, sigma: torch.tensor):
+    def __init__(self, weight: torch.tensor, mean: torch.tensor, sigma: torch.tensor, max_mix: int = DEFAULT_MAX_MIX):
         """
         Docstring for __init__
         
@@ -65,7 +68,9 @@ class GaussMix:
         :param mean: Description
         :type mean: torch.tensor
         :param sigma: Description
-        :type sigma: torch.tensor        
+        :type sigma: torch.tensor
+        :param max_mix: Description
+        :type Max_mix: int      
         """
         if weight.dim() != 1:
             raise AttributeError("dimension of weight is not one!")
@@ -79,6 +84,7 @@ class GaussMix:
         self.w = weight
         self.m = mean
         self.s = sigma
+        self.max_mix = max_mix
 
     def __add__(self, other: "GaussMix"):
         """
@@ -128,7 +134,13 @@ class GaussMix:
         """
         return self.__mul__(other)
     
-    def approx_mul(self, mix: "GaussMix") -> "GaussMix":
+    def normalize(self):
+        w = self.w
+
+        sum = torch.sum(w)
+        self.w = w/sum
+    
+    def approx_mul(self, mix: "GaussMix", max_mix: int = DEFAULT_MAX_MIX) -> "GaussMix":
         """
         Docstring for approx_mul
         
@@ -151,9 +163,9 @@ class GaussMix:
                 m_new[i*size_2 + j] = self.m[i]*mix.m[j]
                 s_new[i*size_2 + j] = math.sqrt((self.s[i]*mix.s[j])**2 + (self.s[i]*mix.m[j])**2 + (self.m[i]*mix.s[j])**2)
 
-        return GaussMix(w_new, m_new, s_new)
+        return GaussMix(w_new, m_new, s_new, max_mix)
     
-    def approx_add(self, mix: "GaussMix") -> "GaussMix":
+    def approx_add(self, mix: "GaussMix", max_mix: int = DEFAULT_MAX_MIX) -> "GaussMix":
         """
         Docstring for approx_add
             
@@ -176,9 +188,9 @@ class GaussMix:
                 m_new[i*size_2 + j] = self.m[i] + mix.m[j]
                 s_new[i*size_2 + j] = math.sqrt(self.s[i]**2 + mix.s[j]**2)
 
-        return GaussMix(w_new, m_new, s_new)
+        return GaussMix(w_new, m_new, s_new, max_mix)
     
-    def approx_activation(self, f) -> "GaussMix":
+    def approx_activation(self, f, max_mix: int = DEFAULT_MAX_MIX) -> "GaussMix":
         """
         Docstring for approx_activation
         
@@ -199,7 +211,7 @@ class GaussMix:
             m_new[i] = 0.5 * (f_1      + f_2)
             s_new[i] = 0.5 * (f_1 ** 2 + f_2 ** 2) - m_new[i] ** 2
         s_new = torch.clamp(s_new, min = 0.01)
-        return GaussMix(self.w, m_new, s_new)
+        return GaussMix(self.w, m_new, s_new, max_mix)
     
     def split(self, position: int):
         """
