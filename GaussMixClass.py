@@ -134,6 +134,9 @@ class GaussMix:
         """
         return self.__mul__(other)
     
+    def clone(self):
+        return GaussMix(self.w.clone(), self.m.clone(), self.s.clone(), self.max_mix)
+    
     def normalize(self):
         w = self.w
 

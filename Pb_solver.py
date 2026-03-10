@@ -8,7 +8,7 @@ import GaussMixClass
 import GaussSpliter
 from logger_config import logger
 
-def solve_Pb(n_nodes, mix_start, mix_product, gamma, noise):
+def solve_Pb(mix_start, mix_product, gamma, noise):
     b_vec = Create_b.b_torchquad(mix_start, mix_product, gamma, noise)
     P_mat = Create_P.P_torchquad(mix_start, mix_product, gamma, noise)
 
@@ -64,7 +64,7 @@ def backward_euler(n_nodes, n_steps, mix_start, mix_product, noise, margin):
 
     return mix
 
-def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
+def rk4_Pb(n_steps, mix_start, mix_product, noise, margin):
     h = 1 / n_steps
         
     gammas = torch.linspace(0, 1, n_steps+1)
@@ -74,16 +74,16 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         logger.debug(f"Loop number {i}:")
         g = gammas[i]
         
-        k1 = solve_Pb(n_nodes, mix,              mix_product, g,       noise)
+        k1 = solve_Pb(mix,              mix_product, g,       noise)
         #logger.debug(f"k1 is w={k1.w}, m={k1.m}, s={k1.s}.")
         
-        k2 = solve_Pb(n_nodes, mix + (h/2) * k1, mix_product, g + h/2, noise)
+        k2 = solve_Pb(mix + (h/2) * k1, mix_product, g + h/2, noise)
         #logger.debug(f"k2 is w={k2.w}, m={k2.m}, s={k2.s}.")
         
-        k3 = solve_Pb(n_nodes, mix + (h/2) * k2, mix_product, g + h/2, noise)
+        k3 = solve_Pb(mix + (h/2) * k2, mix_product, g + h/2, noise)
         #logger.debug(f"k3 is w={k3.w}, m={k3.m}, s={k3.s}.")
         
-        k4 = solve_Pb(n_nodes, mix +  h    * k3, mix_product, g + h,   noise)
+        k4 = solve_Pb(mix +  h    * k3, mix_product, g + h,   noise)
         #logger.debug(f"k4 is w={k4.w}, m={k4.m}, s={k4.s}.")
             
         change = (h/6)*(k1 + 2*k2 + 2*k3 + k4)
@@ -105,11 +105,14 @@ def rk4_Pb(n_nodes, n_steps, mix_start, mix_product, noise, margin):
         plt.ylim(-0.1, 1.0)
         plt.show()"""
 
-        if GaussSpliter.in_margin(n_nodes, mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
+        if GaussSpliter.in_margin(mix, mix_product, margin) and mix.w.size(0) < mix_product.mix1.w.size(0) * mix_product.mix2.w.size(0) == False:
             print("OUT OF MARGIN!")
             #mix = GaussSpliter.add_component(n_nodes, mix, mix_product)
 
     return mix
+
+def mix_density_mult_approx(mix_start, mix_product, nsteps = 20, noise = 0.01, margin = 0.1):
+    return rk4_Pb(nsteps, mix_start, mix_product, noise, margin)
 
 
 if __name__ == "__main__":
