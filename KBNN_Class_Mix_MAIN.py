@@ -119,11 +119,16 @@ class KBBN_mix_class:
 
         return output
     
-    def backward_pass(self, x: torch.tensor, y: GaussMixClass.GaussMix):
+    def backward_pass(self, x: torch.tensor, y: torch.tensor, data_variance: float):
         forward_pass_data = self.forward_pass(x)
         dimensions = self.dimensions
 
-        z_l_bp = [y]
+        L = dimensions[-1]
+        z_l_fp = forward_pass_data[L-1][1]
+        a_l_fp = forward_pass_data[L][0]
+
+        beta_l = [GaussMixClass.GaussMix(torch.tensor([1.0]), torch.tensor([-y[i]]), torch.tensor([data_variance])) for i in range(0, L)]
+        z_l_bp = [mix_density_mult_approx(z_l_fp[i], beta_l[i]) for i in range(0, L)]
 
         # in each layer l backwards
         for l in range(len(dimensions) - 2, 0, -1):

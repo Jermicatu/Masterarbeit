@@ -111,7 +111,13 @@ def rk4_Pb(n_steps, mix_start, mix_product, noise, margin):
 
     return mix
 
-def mix_density_mult_approx(mix_start, mix_product, nsteps = 20, noise = 0.01, margin = 0.1):
+def mix_density_mult_approx(mix_1, mix_2, nsteps = 20, noise = 0.01, margin = 0.1):
+    if mix_1.w.size() <= mix_2.w.size():
+        mix_start = mix_1
+        mix_product = GaussMixClass.GaussMixProduct(mix_2.w, mix_2.m, mix_2.s, mix_1.w, mix_1.m, mix_1.s,)
+    else:
+        mix_start = mix_2
+        mix_product = GaussMixClass.GaussMixProduct(mix_1.w, mix_1.m, mix_1.s, mix_2.w, mix_2.m, mix_2.s,)
     return rk4_Pb(nsteps, mix_start, mix_product, noise, margin)
 
 
