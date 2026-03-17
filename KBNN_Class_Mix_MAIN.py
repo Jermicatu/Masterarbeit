@@ -127,8 +127,10 @@ class KBBN_mix_class:
         z_l_fp = forward_pass_data[L-1][1]
         a_l_fp = forward_pass_data[L][0]
 
-        beta_l = [GaussMixClass.GaussMix(torch.tensor([1.0]), torch.tensor([-y[i]]), torch.tensor([data_variance])) for i in range(0, L)]
-        z_l_bp = [mix_density_mult_approx(z_l_fp[i], beta_l[i]) for i in range(0, L)]
+        beta_z_l = [GaussMixClass.GaussMix(torch.tensor([1.0]), torch.tensor([-y[i]]), torch.tensor([data_variance])) for i in range(0, L)]
+        z_l_bp = [mix_density_mult_approx(z_l_fp[i], beta_z_l[i]) for i in range(0, L)]
+        beta_a_l = beta_z_l
+        z_l_bp = [mix_density_mult_approx(a_l_fp[i], beta_a_l[i]) for i in range(0, L)]
 
         # TODO find a^l BW pass formula (maybe linearize?)
         # TODO find deterministic z^l, w^l formula
