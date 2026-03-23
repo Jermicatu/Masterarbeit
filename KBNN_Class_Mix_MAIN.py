@@ -119,6 +119,104 @@ class KBBN_mix_class:
 
         return output
     
+    def approx_activation_flex(self, a, f):
+        if isinstance(a, torch.Tensor):
+            sol = a.approx_activation(f)
+        elif isinstance(a, float):
+            sol = f(a)
+        else:
+            return TypeError
+        return sol
+    
+    def approx_mul_flex(self, x, y):
+        if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
+            sol = x.approx_mul(y)
+        elif isinstance(x, torch.Tensor) and isinstance(y, float):
+            sol = x.mul_const(y)
+        elif isinstance(y, torch.Tensor) and isinstance(x, float):
+            sol = y.mul_const(x)
+        elif isinstance(x, float) and isinstance(y, float):
+            sol = x * y
+        else:
+            return TypeError
+        return sol
+    
+    def approx_add_flex(self, x, y):
+        if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
+            sol = x.approx_add(y)
+        elif isinstance(x, torch.Tensor) and isinstance(y, float):
+            sol = x.add_const(y)
+        elif isinstance(y, torch.Tensor) and isinstance(x, float):
+            sol = y.add_const(x)
+        elif isinstance(x, float) and isinstance(y, float):
+            sol = x + y
+        else:
+            return TypeError
+        return sol
+    
+    def beta_al(self, a_static, y_var, current_l):
+        # 1D input and output
+        # TODO test
+        dimensions = self.dimensions
+        weights = self.weights
+        f = self.functions
+
+        z_l = [None] * dimensions[current_l + 1]
+        a_l = a_static
+
+        for j in range(0, dimensions[current_l+1]):
+            z_l[j] = self.approx_activation_flex(a_l[j], f[l])
+
+        # in each layer l
+        for l in range(current_l + 1, len(dimensions)-1):
+            a_l = [None] * dimensions[l+1]
+
+            # get each a^(l+1)
+            for j in range(0, dimensions[l+1]):
+                a_l[j] = self.approx_mul_flex(z_l[0], weights[l][j][0])
+                for i in range(0, dimensions[l]):
+                    a_l[j] = self.approx_add_flex(a_l[j], self.approx_mul_flex(z_l[i], weights[l][j][i]))
+                a_l[j] = self.approx_add_flex(a_l[j], weights[l][j][-1]) # Bias
+
+            z_l = [None] * dimensions[l+1]
+
+            # get each z^(l+1)
+            for j in range(0, dimensions[l+1]):
+                z_l[j] = self.approx_activation_flex(a_l[j], f[l])
+
+        beta = self.approx_mul_flex(y_var, z_l[0])
+        return beta
+    
+    def beta_Wzl(self, W_static, z_static, y_var, current_l):
+        # 1D input and output
+        # TODO test
+        dimensions = self.dimensions
+        weights = self.weights
+        f = self.functions
+
+        z_l = z_static
+        weights[current_l + 1] = W_static
+
+        # in each layer l
+        for l in range(current_l + 1, len(dimensions)-1):
+            a_l = [None] * dimensions[l+1]
+
+            # get each a^(l+1)
+            for j in range(0, dimensions[l+1]):
+                a_l[j] = self.approx_mul_flex(z_l[0], weights[l][j][0])
+                for i in range(0, dimensions[l]):
+                    a_l[j] = self.approx_add_flex(a_l[j], self.approx_mul_flex(z_l[i], weights[l][j][i]))
+                a_l[j] = self.approx_add_flex(a_l[j], weights[l][j][-1]) # Bias
+
+            z_l = [None] * dimensions[l+1]
+
+            # get each z^(l+1)
+            for j in range(0, dimensions[l+1]):
+                z_l[j] = self.approx_activation_flex(a_l[j], f[l])
+
+        beta = self.approx_mul_flex(y_var, z_l[0])
+        return beta
+    
     def backward_pass(self, x: torch.tensor, y: torch.tensor, data_variance: float):
         forward_pass_data = self.forward_pass(x)
         dimensions = self.dimensions
