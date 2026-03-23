@@ -133,6 +133,9 @@ class GaussMix:
         :type other: "GaussMix"
         """
         return self.__mul__(other)
+
+    def mean(self):
+        return torch.matmul(self.w, self.m)
     
     def clone(self):
         return GaussMix(self.w.clone(), self.m.clone(), self.s.clone(), self.max_mix)
@@ -142,7 +145,14 @@ class GaussMix:
 
         sum = torch.sum(w)
         self.w = w/sum
-    
+
+    def add_const(self, x: float):
+        self.m += x
+
+    def mul_const(self, x: float):
+        self.m *= x
+        self.s *= x
+
     def approx_mul(self, mix: "GaussMix", max_mix: int = DEFAULT_MAX_MIX) -> "GaussMix":
         """
         Docstring for approx_mul
@@ -593,14 +603,16 @@ def test_7():
     plt.show()
 
 def test_8():
-    w1 = torch.tensor([0.5, 0.5])
-    m1 = torch.tensor([-2., 2.])
-    s1 = torch.tensor([1., 1.])
+    w1 = torch.tensor([0.3, 0.3, 0.2, 0.2])
+    m1 = torch.tensor([-2., 2., 10.5, 15.])
+    s1 = torch.tensor([1., 1., 1., 1.])
 
     mix1 = GaussMix(w1, m1, s1)
 
     print(mix1.eval_random())
-
+    print(mix1.mean())
+    print(mix1.mul_const(3.2))
+    print(mix1.mean())
 
 if __name__ == "__main__":
     """
@@ -613,7 +625,7 @@ if __name__ == "__main__":
     # test_1()
 
     # tests the gamma differential function
-    test_2()
+    #test_2()
 
     # tests the f_tilde for gamma 0 and 1
     # test_3()
@@ -625,10 +637,12 @@ if __name__ == "__main__":
     # test_5()
 
     # tests approx_activation
-    test_6()
+    #test_6()
 
     # Tbh I frogor what this was for sth sth normalized functions
     # test_7()
+
+    test_8()
 
 """
 ANDI TIPPS
