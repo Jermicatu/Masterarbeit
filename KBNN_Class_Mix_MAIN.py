@@ -154,7 +154,8 @@ class KBBN_mix_class:
             return TypeError
         return sol
     
-    def beta_al(self, a_static, y_var, current_l):
+    def beta_al(self, a, y_var, current_l):
+        # prolly not needed might delete later
         # 1D input and output
         # TODO test
         dimensions = self.dimensions
@@ -162,7 +163,7 @@ class KBBN_mix_class:
         f = self.functions
 
         z_l = [None] * dimensions[current_l + 1]
-        a_l = a_static
+        a_l = a
 
         for j in range(0, dimensions[current_l+1]):
             z_l[j] = self.approx_activation_flex(a_l[j], f[l])
@@ -187,15 +188,15 @@ class KBBN_mix_class:
         beta = self.approx_mul_flex(y_var, z_l[0])
         return beta
     
-    def beta_Wzl(self, W_static, z_static, y_var, current_l):
+    def beta_Wzl(self, W, z, y_var, current_l):
         # 1D input and output
         # TODO test
         dimensions = self.dimensions
         weights = self.weights
         f = self.functions
 
-        z_l = z_static
-        weights[current_l + 1] = W_static
+        z_l = z
+        weights[current_l + 1] = W
 
         # in each layer l
         for l in range(current_l + 1, len(dimensions)-1):
@@ -216,8 +217,25 @@ class KBBN_mix_class:
 
         beta = self.approx_mul_flex(y_var, z_l[0])
         return beta
-    
+
     def backward_pass(self, x: torch.tensor, y: torch.tensor, data_variance: float):
+        # Theoretical weight updates aka. backward pass
+        # TODO test
+        weights = self.weights
+        dimensions = self.dimensions
+        forward_pass_data = self.forward_pass(x)
+
+        y_var = GaussMixClass.GaussMix(torch.tensor([1.0]), -y, torch.tensor([data_variance]))
+
+        # in each layer l backwards
+        for l in range(len(dimensions) - 2, 0, -1):
+            for j in range(0, dimensions[l+1]):
+                for i in range(0, dimensions[l]):
+                    weights[l][j][i] = weights[l][j][i].approx_mul(self.beta_Wzl(weights[l], forward_pass_data[l][1], y_var, l))
+
+    def backward_pass_old(self, x: torch.tensor, y: torch.tensor, data_variance: float):
+        # uncompleted version of a backward pass. might delete later
+
         forward_pass_data = self.forward_pass(x)
         dimensions = self.dimensions
 
@@ -228,7 +246,7 @@ class KBBN_mix_class:
         beta_z_l = [GaussMixClass.GaussMix(torch.tensor([1.0]), torch.tensor([-y[i]]), torch.tensor([data_variance])) for i in range(0, L)]
         z_l_bp = [mix_density_mult_approx(z_l_fp[i], beta_z_l[i]) for i in range(0, L)]
         beta_a_l = beta_z_l
-        z_l_bp = [mix_density_mult_approx(a_l_fp[i], beta_a_l[i]) for i in range(0, L)]
+        a_l_bp = [mix_density_mult_approx(a_l_fp[i], beta_a_l[i]) for i in range(0, L)]
 
         # TODO find a^l BW pass formula (maybe linearize?)
         # TODO find deterministic z^l, w^l formula
