@@ -29,8 +29,9 @@ def activation_input_moments(z, W, mix_size: int):
             old_moments = current_moments
             new_moments = z_moments[i] * W_moments[j][i]
             for k in range(0, a_size):
-                current_moments[j][k] += math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) *old_moments[k] * new_moments[a_size-k] # TODO do forumla
-                # write for all dimensions what they do and mean in relation to the formula
+                print(current_moments[j][k])
+                print(math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) * old_moments[j][k] * new_moments[a_size-k])
+                current_moments[j][k] += math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) * old_moments[j][k] * new_moments[a_size-k]
 
     return current_moments
 
@@ -47,3 +48,8 @@ if __name__ == "__main__":
     GaussMixClass.GaussMix(torch.tensor([0.45, 0.1, 0.45]), torch.tensor([-10., 0., 2.]), torch.tensor([10., 1., 10.,]))]]
 
     print(activation_input_moments(z, W, mix_size))
+
+    # TODO
+    # 1) check if code works as inteded
+    # 2) sctivation_output_moments
+    # 3) integrate the functions into the FP
