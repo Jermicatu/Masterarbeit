@@ -22,13 +22,17 @@ def activation_input_moments(z, W, mix_size: int):
     a_size = len(W)
     z_size = len(z_moments)
 
-    moments = [W_moments[j][z_size] for j in range(0, a_size)]
+    current_moments = [W_moments[j][z_size] for j in range(0, a_size)]
 
     for j in range(0, a_size):
         for i in range(0, z_size):
-            moments[j] += z_moments[i] * W_moments[j][i] # TODO do forumla
+            old_moments = current_moments
+            new_moments = z_moments[i] * W_moments[j][i]
+            for k in range(0, a_size):
+                current_moments[j][k] += math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) *old_moments[k] * new_moments[a_size-k] # TODO do forumla
+                # write for all dimensions what they do and mean in relation to the formula
 
-    return moments
+    return current_moments
 
 if __name__ == "__main__":
     mix_size = 3
