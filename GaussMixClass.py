@@ -137,6 +137,39 @@ class GaussMix:
     def mean(self):
         return torch.matmul(self.w, self.m)
     
+    def mixture_moments(self, n: int):
+        """creates 3n-1 moments of the mixture up to 
+
+        Args:
+            n (int): size of the Gauss mix we want to approximate
+
+        Returns:
+            torch.tensor: tensor of 3n-1 first moments of the mixture
+        """
+        w = self.w
+        m = self.m
+        s = self.s
+        max_moment = 3 * n - 1
+
+        def gaussian_moments(m_single, s_single):
+            """
+            Raw non-central moments M_1 .. M_{max_moment} of the mixture.
+            Uses the recurrence:  M_k = mu * M_{k-1} + (k-1) * v * M_{k-2}
+            """
+            m_list = []
+            if max_moment >= 1:
+                m_list.append(m_single)
+            if max_moment >= 2:
+                m_list.append(m_single**2 + s_single)
+            for k in range(2, max_moment):      # k here corresponds to (k+1)-th moment
+                m_list.append(m_single * m_list[k-1] + k * s_single * m_list[k-2])
+        
+            return torch.stack(m_list)
+
+        parts = [w[i] * gaussian_moments(m[i], s[i]) for i in range(n)]
+
+        return torch.stack(parts).sum(dim=0)
+    
     def clone(self):
         return GaussMix(self.w.clone(), self.m.clone(), self.s.clone(), self.max_mix)
     
