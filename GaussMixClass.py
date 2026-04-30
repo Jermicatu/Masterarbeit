@@ -156,7 +156,7 @@ class GaussMix:
             Raw non-central moments M_1 .. M_{max_moment} of the mixture.
             Uses the recurrence:  M_k = mu * M_{k-1} + (k-1) * v * M_{k-2}
             """
-            m_list = []
+            m_list = [torch.tensor(1.)]
             if max_moment >= 1:
                 m_list.append(m_single)
             if max_moment >= 2:

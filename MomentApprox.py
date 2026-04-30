@@ -3,53 +3,129 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import GaussMixClass
+import MomentsMakeMix
 from logger_config import logger
 
+import math
+
+def ReLu(x):
+    return torch.nn.functional.relu(x)
+
 def activation_input_moments(z, W, mix_size: int):
-    """ This function uses the Gaussian mixtures from z and W to calculate the moments of the activation input a
-
+    """Calculate moments of activation input a = w_{0,j} + sum_i z_i * w_{i,j}
+    
     Args:
-        z (_type_): array of GaussMixClass.GaussMix elements, describes the previous layer output
-        W (_type_): double array of GaussMixClass.GaussMix elements, describes the layer weights
-        mix_size (int): size of all mixes in the network
-
+        z: list of GaussMix, previous layer outputs (length z_size)
+        W: list of lists of GaussMix, weights W[j][i] for output j, input i
+           W[j][0] is bias, W[j][1:] are weights for z_0, z_1, ...
+        mix_size: number of components in each mixture
+    
     Returns:
-        _type_: _description_
+        list of moment tensors, one per output unit j
     """
+    max_moment = 3 * mix_size - 1
+    z_size = len(z)
+    a_size = len(W)
+    
+    # Pre-compute all mixture moments
     z_moments = [z_i.mixture_moments(mix_size) for z_i in z]
     W_moments = [[w_ij.mixture_moments(mix_size) for w_ij in vector] for vector in W]
+    
+    result = []
+    
+    for j in range(a_size):
+        # Start with bias moments (index -1), make a copy
+        cumulative = W_moments[j][-1]
+        
+        # Add each z_i * w_{i,j} term (note: W[j][0] corresponds to z[0])
+        for i in range(z_size):
+            # Element-wise product of moments: m_k(z_i * w_{i+1,j}) = m_k(z_i) * m_k(w_{i,j})
+            product_moments = z_moments[i] * W_moments[j][i]
+            
+            # Convolve: m_k(S + X) = sum_{split=0}^k C(k,split) * m_split(S) * m_{k-split}(X)
+            new_cumulative = []
+            for k in range(max_moment+1):
+                total = 0.0
+                for split in range(k + 1):
+                    total += math.comb(k, split) * cumulative[split] * product_moments[k - split]
+                new_cumulative.append(total)
+            
+            cumulative = new_cumulative
+        
+        result.append(torch.stack(cumulative))
+    
+    return result
 
-    a_size = len(W)
-    z_size = len(z_moments)
+def activation_output_moments(a, f, mix_size: int):
+    """Calculate the moments of the activation output f(a)
 
-    current_moments = [W_moments[j][z_size] for j in range(0, a_size)]
+    Args:
+        a (_type_): list of GaussMix, layer inputs (length a_size)
+        f (_type_): activation function
+        mix_size (int): number of components in each mixture
 
-    for j in range(0, a_size):
-        for i in range(0, z_size):
-            old_moments = current_moments
-            new_moments = z_moments[i] * W_moments[j][i]
-            for k in range(0, a_size):
-                print(current_moments[j][k])
-                print(math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) * old_moments[j][k] * new_moments[a_size-k])
-                current_moments[j][k] += math.factorial(a_size) / (math.factorial(k) * math.factorial(a_size - k)) * old_moments[j][k] * new_moments[a_size-k]
+    Returns:
+        list of moment tensors, one per output unit j
+    """
+    max_moment = 3 * mix_size - 1
+    a_size = len(a)
 
-    return current_moments
+    result = []
+    
+    # For each z_j we want to get the moments for
+    for j in range(a_size):
+        z_j_moments = torch.ones(max_moment+1)
+        w = a[j].w
+        m = a[j].m
+        s = a[j].s
+        
+        f_plus = torch.zeros(mix_size)
+        f_minus = torch.zeros(mix_size)
+        # create function for each Gaussian
+        for i in range(mix_size):
+            f_plus[i] = f(m[i] + math.sqrt(s[i]))
+            f_minus[i] = f(m[i] - math.sqrt(s[i]))
 
-if __name__ == "__main__":
-    mix_size = 3
+        # For each moment we want to calculate
+        for k in range(1, max_moment+1):
+            z_j_moments[k] = torch.sum(w * (f_plus**k + f_minus**k)) / 2
+        
+        result.append(z_j_moments.clone())
 
-    z = [GaussMixClass.GaussMix(torch.tensor([0.3, 0.4, 0.3]), torch.tensor([1., 2., 2.]), torch.tensor([1., 1., 0.5,])),
-    GaussMixClass.GaussMix(torch.tensor([0.7, 0.2, 0.1]), torch.tensor([-1., -1., 0.]), torch.tensor([2., 2., 2.,])),
-    GaussMixClass.GaussMix(torch.tensor([0.5, 0.05, 0.45]), torch.tensor([-2., -2., -2.]), torch.tensor([10., 0.5, 0.5,]))]
+    return result
 
-    W = [[GaussMixClass.GaussMix(torch.tensor([0.1, 0.1, 0.8]), torch.tensor([0., 1., -1.]), torch.tensor([1., 1., 1.,])),
-    GaussMixClass.GaussMix(torch.tensor([0.2, 0.2, 0.6]), torch.tensor([-1., -1., -1.]), torch.tensor([1., 1., 1.,])),
-    GaussMixClass.GaussMix(torch.tensor([0.33, 0.34, 0.33]), torch.tensor([-3., 0., 3.]), torch.tensor([2., 2., 2.,])),
-    GaussMixClass.GaussMix(torch.tensor([0.45, 0.1, 0.45]), torch.tensor([-10., 0., 2.]), torch.tensor([10., 1., 10.,]))]]
+def activation_input_approx(z, W, mix_size: int):
+    a_moments = activation_input_moments(z, W, mix_size)
+    a = [MomentsMakeMix.MomentsToMix(a_j_moments) for a_j_moments in a_moments]
+    return a
 
-    print(activation_input_moments(z, W, mix_size))
+def activation_output_approx(a, f, mix_size: int):
+    z_moments = activation_output_moments(a, f, mix_size)
+    z = [MomentsMakeMix.MomentsToMix(z_j_moments[1:], mix_size) for z_j_moments in z_moments]
+    return z
+
+if __name__ == "__main__":    
+    mix_size = 1
+
+    a = [GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.]))]
+
+    mixes = activation_output_approx(a, ReLu, mix_size)
+
+    print("0:")
+    print(mixes[0].w)
+    print(mixes[0].m)
+    print(mixes[0].s)
+    print("1:")
+    print(mixes[1].w)
+    print(mixes[1].m)
+    print(mixes[1].s)
+    print("2:")
+    print(mixes[2].w)
+    print(mixes[2].m)
+    print(mixes[2].s)
+
 
     # TODO
-    # 1) check if code works as inteded
-    # 2) sctivation_output_moments
     # 3) integrate the functions into the FP

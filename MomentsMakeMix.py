@@ -119,6 +119,32 @@ def unpack_theta_torch(theta, n):
     print(m_opt)
     print(s_opt)"""
 
+def MomentsToMix(M_given: torch.tensor, mixture_size: int) -> GaussMixClass.GaussMix:
+    n = mixture_size
+    best_loss = float('inf')
+    best_theta = None
+
+    # Multi-start: try many random initializations
+    for trial in range(5):
+        theta = torch.nn.Parameter(torch.randn(3*n - 1) * 2)  # wider spread
+        optimizer = torch.optim.Adam([theta], lr=0.05)
+
+        for step in range(2000):
+            optimizer.zero_grad()
+            w, m, s = unpack_theta_torch(theta, n)
+            M_pred = mixture_moments_torch(w, m, s, n)
+            loss = torch.sum((M_pred - M_given)**2)
+            loss.backward()
+            optimizer.step()
+
+        if loss.item() < best_loss:
+            best_loss = loss.item()
+            best_theta = theta.detach().clone()
+
+    # Unpack best solution
+    w_opt, m_opt, s_opt = unpack_theta_torch(best_theta, n)
+    return GaussMixClass.GaussMix(w_opt, m_opt, s_opt)
+
 if __name__ == "__main__":
     torch.manual_seed(42)  # for reproducibility
         
