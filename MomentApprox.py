@@ -2,6 +2,7 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.special import roots_hermite
 import GaussMixClass
 import MomentsMakeMix
 from logger_config import logger
@@ -56,6 +57,64 @@ def activation_input_moments(z, W, mix_size: int):
     
     return result
 
+def activation_output_moments_gh(a, f, mix_size: int, n_points: int = 10):
+    """Calculate the moments of the activation output f(a) using Gauss-Hermite quadrature
+
+    Args:
+        a: list of GaussMix, layer inputs (length a_size)
+        f: activation function (must handle float inputs)
+        mix_size: number of components in each mixture
+        n_points: number of Gauss-Hermite quadrature points (default 10)
+
+    Returns:
+        list of moment tensors, one per output unit j
+    """
+    max_moment = 3 * mix_size - 1
+    a_size = len(a)
+    
+    # Pre-compute Gauss-Hermite nodes and weights
+    # roots_hermite returns nodes x_j and weights w_j for:
+    #   ∫_{-∞}^{∞} g(x) exp(-x²) dx ≈ Σ_j w_j g(x_j)
+    gh_nodes, gh_weights = roots_hermite(n_points)
+    gh_nodes = torch.tensor(gh_nodes)
+    gh_weights = torch.tensor(gh_weights)
+    
+    result = []
+    
+    for j in range(a_size):
+        z_j_moments = torch.ones(max_moment + 1)
+        w = a[j].w
+        m = a[j].m
+        s = a[j].s
+        
+        for k in range(1, max_moment + 1):
+            total = 0.0
+            
+            for i in range(mix_size):
+                mu = m[i].item()
+                sigma = math.sqrt(s[i].item())
+                weight = w[i].item()
+                
+                # Transform nodes: x = √2·σ·node + μ
+                # This maps the standard GH nodes to N(μ, σ²)
+                transformed_nodes = math.sqrt(2) * sigma * gh_nodes + mu
+                
+                # Evaluate activation at all nodes
+                fx = f(transformed_nodes)
+                
+                # Gauss-Hermite quadrature with probability normalization
+                # Divide by √π because the Gaussian density has 1/√(2πσ²) 
+                # and the substitution introduces √(2)σ factors that cancel
+                moment_i = torch.sum(gh_weights * (fx ** k)) / math.sqrt(math.pi)
+                
+                total += weight * moment_i
+            
+            z_j_moments[k] = total
+        
+        result.append(z_j_moments.clone())
+    
+    return result
+
 def activation_output_moments(a, f, mix_size: int):
     """Calculate the moments of the activation output f(a)
 
@@ -100,11 +159,50 @@ def activation_input_approx(z, W, mix_size: int):
     return a
 
 def activation_output_approx(a, f, mix_size: int):
-    z_moments = activation_output_moments(a, f, mix_size)
+    z_moments = activation_output_moments_gh(a, f, mix_size)
     z = [MomentsMakeMix.MomentsToMix(z_j_moments[1:], mix_size) for z_j_moments in z_moments]
     return z
 
-if __name__ == "__main__":    
+import torch
+import math
+import numpy as np
+from scipy.optimize import least_squares
+from scipy.stats import norm
+
+def sample_relu_mixture(a, f, n_samples=100000):
+    """Sample from ReLU(a) where a is a list of Gaussian mixtures"""
+    samples = []
+    
+    for aj in a:
+        w = aj.w
+        m = aj.m
+        s = aj.s
+        
+        samples_j = torch.zeros(n_samples)
+
+        for i in range(n_samples):
+            samples_j[i] = f(torch.sum(w * (m + torch.randn(w.size(0)) * torch.sqrt(s))))
+
+        samples.append(samples_j.clone())
+
+    return samples
+
+def moments_from_samples(a, f, mix_size, n_samples=100000):
+
+    samples = sample_relu_mixture(a, f, n_samples=100000)
+
+    moments = []
+    max_moment = 3 * mix_size - 1
+
+    for samples_j in samples:
+        moments_j = torch.ones(max_moment + 1)
+        for k in range(1, max_moment+1):
+            moments_j[k] = torch.sum(samples_j**k)/n_samples
+        moments.append(moments_j.clone())
+
+    return moments
+
+def test1():
     mix_size = 1
 
     a = [GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
@@ -113,6 +211,17 @@ if __name__ == "__main__":
 
     mixes = activation_output_approx(a, ReLu, mix_size)
 
+    my_moments = activation_output_moments_gh(a, ReLu, mix_size)
+
+    empirical_moments = moments_from_samples(a, ReLu, mix_size)
+
+    print(my_moments)
+    print(empirical_moments)
+
+if __name__ == "__main__":    
+    test1()
+
+"""
     print("0:")
     print(mixes[0].w)
     print(mixes[0].m)
@@ -125,7 +234,7 @@ if __name__ == "__main__":
     print(mixes[2].w)
     print(mixes[2].m)
     print(mixes[2].s)
-
+"""
 
     # TODO
     # 3) integrate the functions into the FP
