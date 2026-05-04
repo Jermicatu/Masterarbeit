@@ -62,7 +62,6 @@ def pack_theta_torch(weights, means, variances):
     theta = torch.cat([z, mu, l])
     return theta
 
-
 def unpack_theta_torch(theta, n):
     """
     Unpack theta into physical parameters.
@@ -84,40 +83,6 @@ def unpack_theta_torch(theta, n):
     v = torch.exp(l)
 
     return w, mu, v
-
-"""if __name__ == "__main__":
-    w_truth = torch.tensor([0.3, 0.2, 0.5])
-    m_truth = torch.tensor([-1, 1, 3])
-    s_truth = torch.tensor([1, 2, 3])
-
-    n = 3
-
-    theta = pack_theta_torch(w_truth, m_truth, s_truth)
-    w_test, m_test, s_test = unpack_theta_torch(theta, n)
-
-    print(w_truth - w_test)
-    print(m_truth - m_test)
-    print(s_truth - s_test)
-
-    theta = torch.nn.Parameter(torch.randn(3*n - 1))
-    optimizer = torch.optim.Adam([theta], lr=0.01)
-    M_given = mixture_moments_torch(w_truth, m_truth, s_truth, n)
-
-    print(M_given)
-    
-    for step in range(1000):
-        optimizer.zero_grad()
-        w, m, s = unpack_theta_torch(theta, n)
-        M_pred = mixture_moments_torch(w, m, s, n)  # your torch forward 
-        loss = torch.sum((M_pred - M_given)**2)     # Juli: This will be where w insert the moment approximation
-        loss.backward()
-        optimizer.step()
-
-    w_opt, m_opt, s_opt = unpack_theta_torch(theta, n)
-
-    print(w_opt)
-    print(m_opt)
-    print(s_opt)"""
 
 def MomentsToMix(M_given: torch.tensor, mixture_size: int) -> GaussMixClass.GaussMix:
     n = mixture_size
@@ -145,12 +110,17 @@ def MomentsToMix(M_given: torch.tensor, mixture_size: int) -> GaussMixClass.Gaus
     w_opt, m_opt, s_opt = unpack_theta_torch(best_theta, n)
     return GaussMixClass.GaussMix(w_opt, m_opt, s_opt)
 
-if __name__ == "__main__":
-    torch.manual_seed(42)  # for reproducibility
+
+
+def test():
+    # tests the accuracy of the MomentsToMix function
+
+    torch.manual_seed(42)
         
     w_truth = torch.tensor([0.3, 0.2, 0.5])
     m_truth = torch.tensor([-1.0, 1.0, 3.0])
     s_truth = torch.tensor([1.0, 2.0, 3.0])
+    
     n = 3
 
     M_given = mixture_moments_torch(w_truth, m_truth, s_truth, n)
@@ -195,3 +165,6 @@ if __name__ == "__main__":
     print("Weights: ", w_truth - w_opt.detach())
     print("Means:   ", m_truth - m_opt.detach())
     print("Variances:", s_truth - s_opt.detach())
+
+if __name__ == "__main__":
+    test()

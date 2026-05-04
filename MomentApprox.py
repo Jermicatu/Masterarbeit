@@ -163,13 +163,48 @@ def activation_output_approx(a, f, mix_size: int):
     z = [MomentsMakeMix.MomentsToMix(z_j_moments[1:], mix_size) for z_j_moments in z_moments]
     return z
 
-import torch
-import math
-import numpy as np
-from scipy.optimize import least_squares
-from scipy.stats import norm
+def sample_activation_input_mixture(z, W, n_samples=100000):
 
-def sample_relu_mixture(a, f, n_samples=100000):
+    z_size = len(z)
+    a_size = len(W)
+
+    samples = []
+
+    for j in range(a_size):
+        samples_j = torch.zeros(n_samples)
+
+        for k in range(n_samples):
+            for i in range(z_size):
+                z_i = z[i]
+                w_ij = W[j][i]
+
+                w_z_i = z_i.w
+                m_z_i = z_i.m
+                s_z_i = z_i.s
+
+                w_w_ij = w_ij.w
+                m_w_ij = w_ij.m
+                s_w_ij = w_ij.s
+
+                z_i_sample = w_z_i * (torch.randn(w_z_i.size(0)) * torch.sqrt(s_z_i) + m_z_i)
+                W_ij_sample = w_w_ij * (torch.randn(w_w_ij.size(0)) * torch.sqrt(s_w_ij) + m_w_ij)
+
+                samples_j[k] += z_i_sample.item() * W_ij_sample.item()
+            w_ij = W[-1][j]
+
+            w_w_ij = w_ij.w
+            m_w_ij = w_ij.m
+            s_w_ij = w_ij.s
+
+            W_ij_sample = w_w_ij* (torch.randn(w_w_ij.size(0)) * torch.sqrt(s_w_ij) + m_w_ij)
+
+            samples_j[k] += W_ij_sample.item()
+
+        samples.append(samples_j.clone())
+
+    return samples
+
+def sample_activation_output_mixture(a, f, n_samples=100000):
     """Sample from ReLU(a) where a is a list of Gaussian mixtures"""
     samples = []
     
@@ -187,9 +222,24 @@ def sample_relu_mixture(a, f, n_samples=100000):
 
     return samples
 
-def moments_from_samples(a, f, mix_size, n_samples=100000):
+def activation_output_moments_from_samples(a, f, mix_size, n_samples=100000):
 
-    samples = sample_relu_mixture(a, f, n_samples=100000)
+    samples = sample_activation_output_mixture(a, f, n_samples=100000)
+
+    moments = []
+    max_moment = 3 * mix_size - 1
+
+    for samples_j in samples:
+        moments_j = torch.ones(max_moment + 1)
+        for k in range(1, max_moment+1):
+            moments_j[k] = torch.sum(samples_j**k)/n_samples
+        moments.append(moments_j.clone())
+
+    return moments
+
+def activation_input_moments_from_samples(a, W, mix_size, n_samples=100000):
+
+    samples = sample_activation_input_mixture(a, W, n_samples=100000)
 
     moments = []
     max_moment = 3 * mix_size - 1
@@ -203,23 +253,57 @@ def moments_from_samples(a, f, mix_size, n_samples=100000):
     return moments
 
 def test1():
+    # Tests the activation output moments
     mix_size = 1
 
     a = [GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.]))]
 
-    mixes = activation_output_approx(a, ReLu, mix_size)
+    my_moments = activation_output_moments_gh(a, ReLu, mix_size)
+
+    empirical_moments = activation_output_moments_from_samples(a, ReLu, mix_size)
+
+    print(my_moments)
+    print(empirical_moments)
+
+def test2():
+    # Tests the activation output moments
+    mix_size = 2
+
+    a = [GaussMixClass.GaussMix(torch.tensor([0.5, 0.5]), torch.tensor([1., 2.]), torch.tensor([1., 10.])),
+    GaussMixClass.GaussMix(torch.tensor([0.1, 0.9]), torch.tensor([-1., -2]), torch.tensor([2., 2.])),
+    GaussMixClass.GaussMix(torch.tensor([0.3, 0.7]), torch.tensor([-2., -10.]), torch.tensor([10., 0.5]))]
 
     my_moments = activation_output_moments_gh(a, ReLu, mix_size)
 
-    empirical_moments = moments_from_samples(a, ReLu, mix_size)
+    empirical_moments = activation_output_moments_from_samples(a, ReLu, mix_size)
+
+    print(my_moments)
+    print(empirical_moments)
+
+def test3():
+    # Tests the activation input moments
+    mix_size = 1
+
+    a = [GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.]))]
+
+    W = [[GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.])),
+    GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.]))]]
+
+    my_moments = activation_input_moments(a, W, mix_size)
+
+    empirical_moments = activation_input_moments_from_samples(a, W, mix_size)
 
     print(my_moments)
     print(empirical_moments)
 
 if __name__ == "__main__":    
-    test1()
+    test3()
 
 """
     print("0:")
