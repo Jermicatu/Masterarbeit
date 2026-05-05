@@ -115,7 +115,7 @@ def MomentsToMix(M_given: torch.tensor, mixture_size: int) -> GaussMixClass.Gaus
 def test():
     # tests the accuracy of the MomentsToMix function
 
-    torch.manual_seed(42)
+    torch.manual_seed(421)
         
     w_truth = torch.tensor([0.3, 0.2, 0.5])
     m_truth = torch.tensor([-1.0, 1.0, 3.0])
@@ -130,7 +130,7 @@ def test():
     best_theta = None
 
     # Multi-start: try many random initializations
-    for trial in range(6):
+    for trial in range(10):
         theta = torch.nn.Parameter(torch.randn(3*n - 1) * 2)  # wider spread
         optimizer = torch.optim.Adam([theta], lr=0.05)
 
@@ -150,6 +150,17 @@ def test():
     # Unpack best solution
     w_opt, m_opt, s_opt = unpack_theta_torch(best_theta, n)
 
+    x = torch.linspace(-8, 8, 400)
+
+    mix_truth = GaussMixClass.GaussMix(w_truth, m_truth, s_truth)
+    mix_opt = GaussMixClass.GaussMix(w_opt, m_opt, s_opt)
+
+    f_truth = mix_truth.eval(x)
+    plt.plot(x, f_truth, label="mix_truth")
+
+    f_opt = mix_opt.eval(x)
+    plt.plot(x, f_opt, label="mix_opt")
+
     print("\n=== TRUTH ===")
     print("Weights: ", w_truth)
     print("Means:   ", m_truth)
@@ -161,10 +172,18 @@ def test():
     print("Variances:", s_opt.detach())
     print(f"Final loss: {best_loss:.2e}")
 
+    plt.legend()
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.grid(True)
+    plt.show()
+
+    """
     print("\n=== DIFFERENCES ===")
     print("Weights: ", w_truth - w_opt.detach())
     print("Means:   ", m_truth - m_opt.detach())
     print("Variances:", s_truth - s_opt.detach())
+    """
 
 if __name__ == "__main__":
     test()

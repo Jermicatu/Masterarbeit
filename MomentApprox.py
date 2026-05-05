@@ -286,10 +286,12 @@ def test3():
     # Tests the activation input moments
     mix_size = 1
 
+    # a size is 3
     a = [GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.]))]
 
+    # W size is 1x(3+bias)
     W = [[GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([1.]), torch.tensor([1.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-1.]), torch.tensor([2.])),
     GaussMixClass.GaussMix(torch.tensor([1.]), torch.tensor([-2.]), torch.tensor([10.])),

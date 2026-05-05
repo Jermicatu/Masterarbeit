@@ -5,6 +5,7 @@ import time
 import numpy as np
 import random
 import GaussMixClass
+import MomentApprox
 from Pb_solver import mix_density_mult_approx
 
 from torch import tanh as tanh
@@ -17,7 +18,72 @@ from torch import exp as exp
 def id(x):
     return x
 
-class KBBN_mix_class:
+class KBBN_mix_class_new:
+    def __init__(self, dimensions, functions, starting_variance = 1):
+        self.dimensions = dimensions
+        self.functions = functions
+        self.noise = 0.01
+
+        assert len(dimensions) - len(functions) == 1, f"dimensions should have one more entry then functions"
+
+        weights = [[[None for _ in range(dimensions[l] + 1)]
+                        for _ in range(dimensions[l + 1])]
+                        for l in range(len(dimensions) - 1)]
+
+        for l in range(0, len(dimensions) - 1):
+            for j in range(0, dimensions[l+1]):
+                for i in range(0, dimensions[l] + 1):
+                    weights[l][j][i] = GaussMixClass.GaussMix(torch.tensor([0.5, 0.5]), torch.tensor([-1., 1.]), torch.tensor([1., 1.]))
+
+        self.weights = weights
+
+    def static_output(self, x: torch.tensor):
+        dimensions = self.dimensions
+        weights = self.weights
+        functions = self.functions
+
+        w = [[[None for _ in range(dimensions[l] + 1)]
+                    for _ in range(dimensions[l + 1])]
+                    for l in range(len(dimensions) - 1)]
+        for l in range(0, len(dimensions) - 1):
+            for j in range(0, dimensions[l+1]):
+                for i in range(0, dimensions[l] + 1):
+                    w[l][j][i] = weights[l][j][i].eval_random()
+
+        layer_input = x
+        for l in range(0, len(dimensions) - 1):
+            layer_output = torch.zeros(dimensions[l+1])
+            f = functions[l]
+            for j in range(0, dimensions[l+1]):
+                layer_output[j] = torch.matmul(layer_input, torch.tensor(w[l][j][0:dimensions[l]])) + w[l][j][-1] # Bias
+            layer_input = f(layer_output)
+
+        return layer_input
+    
+    def forward_pass(self, x: torch.tensor):
+        # 1D input and output
+        mix_size = 2 # TODO
+        dimensions = self.dimensions
+        weights = self.weights
+        f = self.functions
+
+        assert x.size(0) - dimensions[0], f"dimensions of the input does not match dimension[0]"
+
+        output = [[None, None] for _ in range(len(dimensions) - 1)]
+
+        z_l = [None] * dimensions[0]
+        z_l[0] = GaussMixClass.GaussMix(torch.ones(1), x, torch.ones(1) * 0.1) # TODO this does not work for higher dim x
+
+        # in each layer l
+        for l in range(0, len(dimensions)-1):
+            a_l = MomentApprox.activation_input_approx(z_l, f, mix_size)
+            z_l = MomentApprox.activation_output_approx(a_l, weights[l], mix_size)
+            output[l][0] = [gm.clone() for gm in a_l] 
+            output[l][1] = [gm.clone() for gm in z_l]
+
+        return output
+
+class KBBN_mix_class_old:
     def __init__(self, dimensions, functions, starting_variance = 1):
         self.dimensions = dimensions
         self.functions = functions
@@ -265,7 +331,7 @@ class KBBN_mix_class:
 def test_1(): 
     dimensions = [1, 3, 1]
     functions = [relu, id]
-    my_KBNN = KBBN_mix_class(dimensions, functions)
+    my_KBNN = KBBN_mix_class_old(dimensions, functions)
 
     x = torch.tensor([1.])
 
@@ -274,7 +340,7 @@ def test_1():
 def test_2(size: int):
     dimensions = [1, 3, 1]
     functions = [relu, id]
-    my_KBNN = KBBN_mix_class(dimensions, functions)
+    my_KBNN = KBBN_mix_class_old(dimensions, functions)
 
     x = torch.tensor([1.])
     y = torch.zeros(size)
@@ -288,7 +354,7 @@ def test_2(size: int):
 def test_3():
     dimensions = [1, 3, 1]
     functions = [relu, id]
-    my_KBNN = KBBN_mix_class(dimensions, functions)
+    my_KBNN = KBBN_mix_class_old(dimensions, functions)
 
     mix = my_KBNN.uncertainty_quantification(torch.tensor([1.]))
 
