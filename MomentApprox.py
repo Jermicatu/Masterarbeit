@@ -9,6 +9,8 @@ from logger_config import logger
 
 import math
 
+# functions needed for the calculations
+
 def ReLu(x):
     return torch.nn.functional.relu(x)
 
@@ -57,7 +59,7 @@ def activation_input_moments(z, W, mix_size: int):
     
     return result
 
-def activation_output_moments_gh(a, f, mix_size: int, n_points: int = 10):
+def activation_output_moments_gh(a, f, mix_size: int, n_points: int = 100):
     """Calculate the moments of the activation output f(a) using Gauss-Hermite quadrature
 
     Args:
@@ -153,6 +155,8 @@ def activation_output_moments(a, f, mix_size: int):
 
     return result
 
+# we want to export these 2 functions
+
 def activation_input_approx(z, W, mix_size: int):
     a_moments = activation_input_moments(z, W, mix_size)
     a = [MomentsMakeMix.MomentsToMix(a_j_moments) for a_j_moments in a_moments]
@@ -162,6 +166,8 @@ def activation_output_approx(a, f, mix_size: int):
     z_moments = activation_output_moments_gh(a, f, mix_size)
     z = [MomentsMakeMix.MomentsToMix(z_j_moments[1:], mix_size) for z_j_moments in z_moments]
     return z
+
+# end of export rest is for testing
 
 def sample_activation_input_mixture(z, W, n_samples=100000):
 
@@ -305,7 +311,7 @@ def test3():
     print(empirical_moments)
 
 if __name__ == "__main__":    
-    test3()
+    test2()
 
 """
     print("0:")
