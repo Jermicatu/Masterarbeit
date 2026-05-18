@@ -49,7 +49,7 @@ class PaperBNN:
 
         return sol.sum()
 
-    def ELBO(self, m_q, s_q, x_data, y_data):
+    def ELBO(self, m_q, s_q, x_data, y_data, kl_weight=1.0):
         # Calculates the ELBO of all our weights in the network between the current p and new q distributions
         L = len(self.dimensions) - 1
         m_p = self.m
@@ -62,12 +62,36 @@ class PaperBNN:
         flat_mp = torch.cat([ml.flatten() for ml in m_p])
         flat_sp = torch.cat([sl.flatten() for sl in s_p])
 
-        for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
-            my_ELBO -= 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
+        kl = 0
 
-        return my_ELBO
+        for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
+            kl -= 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
+
+        return my_ELBO - kl_weight* kl
     
-    def train(self, x_data, y_data, lr_m=0.2, lr_s=0.1, epochs=500):
+    def train(self, x_data, y_data, epochs=500, lr=0.01):
+        m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
+        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]
+
+        optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
+
+        for epoch in range(epochs):
+
+            kl_weight = min(1.0, epoch / 200.0)
+
+            optimizer.zero_grad()
+            s_q = [torch.exp(ls) for ls in log_s_q]
+            loss = -self.ELBO(m_q, s_q, x_data, y_data, kl_weight)
+            loss.backward()
+            optimizer.step()
+
+            if epoch % 50 == 0:
+                print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
+
+        self.m = [m.detach().clone() for m in m_q]
+        self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
+
+    def train_old(self, x_data, y_data, lr_m=0.2, lr_s=0.1, epochs=500):
 
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
         log_s_q = [torch.log(s.clone().detach()).requires_grad_(True) for s in self.s]
@@ -155,9 +179,11 @@ def test1():
     print(y_s)
 
     y_pred = y_m.squeeze(0)
+    y_s = y_s.squeeze(0)
 
     plt.plot(x_data, y_data, label="cos(x)")
     plt.plot(x_data, y_pred, label="Network output")
+    plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
 
     plt.legend()
