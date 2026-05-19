@@ -92,47 +92,6 @@ class PaperBNN:
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
 
-    def train_old(self, x_data, y_data, lr_m=0.2, lr_s=0.1, epochs=500):
-
-        m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
-        log_s_q = [torch.log(s.clone().detach()).requires_grad_(True) for s in self.s]
-
-        for epoch in range(epochs):
-            print(epoch)
-            s_q_fixed = [torch.exp(ls).detach() for ls in log_s_q]
-
-            loss_m = -self.ELBO(m_q, s_q_fixed, x_data, y_data)
-            print(loss_m)
-            print(s_q_fixed)
-            loss_m.backward()
-
-            with torch.no_grad():
-                for m in m_q:
-                    if m.grad is not None:
-                        m -= lr_m * m.grad      # ascent:  m <- m + lr * grad_ELBO
-
-            for m in m_q:
-                if m.grad is not None:
-                    m.grad.zero_()
-
-            m_q_fixed = [m.detach() for m in m_q]
-            s_q_var = [torch.exp(ls) for ls in log_s_q]
-
-            loss_s = -self.ELBO(m_q_fixed, s_q_var, x_data, y_data)
-            loss_s.backward()
-
-            with torch.no_grad():
-                for ls in log_s_q:
-                    if ls.grad is not None:
-                        ls -= lr_s * ls.grad    # ascent on log(s)
-
-            for ls in log_s_q:
-                if ls.grad is not None:
-                    ls.grad.zero_()
-
-        self.m = [m.detach().clone() for m in m_q]
-        self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
-
     def predict(self, x_data):
         # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
         dimensions = self.dimensions
