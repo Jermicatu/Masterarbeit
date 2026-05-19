@@ -19,6 +19,7 @@ class PaperBNN:
 
         L = len(dimensions) - 1
         self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1) * 0.1 for l in range(L)]
+        print(self.m)
         self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1) for l in range(L)]
         
     def forwardPass(self, m_q, s_q, x_data, y_data):
@@ -71,13 +72,13 @@ class PaperBNN:
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
-        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]
+        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
 
         optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
 
         for epoch in range(epochs):
 
-            kl_weight = min(1.0, epoch / 200.0)
+            kl_weight = min(1.0, epoch / 400.0)
 
             optimizer.zero_grad()
             s_q = [torch.exp(ls) for ls in log_s_q]
@@ -181,7 +182,7 @@ def test1():
     y_pred = y_m.squeeze(0)
     y_s = y_s.squeeze(0)
 
-    plt.plot(x_data, y_data, label="cos(x)")
+    plt.plot(x_data, y_data, 'ro', label="cos(x)")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
