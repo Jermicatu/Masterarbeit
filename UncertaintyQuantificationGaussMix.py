@@ -1,24 +1,30 @@
 import torch
 import math
 import matplotlib.pyplot as plt
+import numpy as np
+import GaussMixClass
+import MomentApprox
 from logger_config import logger
 
 def id(x):
     return x
 
-class PaperBNN:
-    def __init__(self, dimensions, functions, starting_variance = 5, data_variance = 1):
+class myMixBNN:
+    # featuring Variational interference
+    def __init__(self, dimensions, functions, mix_size, starting_variance = 5, data_variance = 1):
         self.dimensions = dimensions
         self.functions = functions
+        self.mix_size = mix_size
         self.data_variance = data_variance
         self.starting_variance = starting_variance
 
         assert len(functions) == len(dimensions) - 1, f"size of functions and dimensions - 1 do not match" 
 
         L = len(dimensions) - 1
-        self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1) * 0.1 for l in range(L)]
+        self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1, mix_size) * 0.1 for l in range(L)]
         print(self.m)
-        self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1) for l in range(L)]
+        self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) for l in range(L)]
+        self.w = [torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) / mix_size for l in range(L)]
         
     def forwardPass(self, m_q, s_q, x_data, y_data):
         # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
@@ -32,6 +38,7 @@ class PaperBNN:
         sol = 0
 
         for i in range(len(x_data)):
+            # TODO: fix to mix
             m_z_l = x_data[i:i+1]
             s_z_l = torch.zeros_like(m_z_l)
             y = y_data[i]
@@ -54,6 +61,8 @@ class PaperBNN:
         m_p = self.m
         s_p = self.s
 
+        # TODO: fix to mix
+
         my_ELBO = self.forwardPass(m_q, s_q, x_data, y_data)
 
         flat_mq = torch.cat([ml.flatten() for ml in m_q])
@@ -71,7 +80,10 @@ class PaperBNN:
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
         log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
+        w_q = [w.clone().detach().requires_grad_(True) for w in self.w]
 
+        # TODO: fix to mix
+        
         optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
 
         for epoch in range(epochs):
@@ -93,27 +105,26 @@ class PaperBNN:
     def predict(self, x_data):
         dimensions = self.dimensions
         functions = self.functions
+        mix_size = self.mix_size
         L = len(dimensions) - 1
 
         m_p = self.m
         s_p = self.s
+        mix_w_p = self.mix_w
 
         y_mean = torch.zeros(dimensions[-1], len(x_data))
         y_var = torch.ones(dimensions[-1], len(x_data))
 
         for i in range(len(x_data)):
             m_z_l = x_data[i:i+1]
-            s_z_l = torch.zeros(1)
+            s_z_l = torch.zeros_like(m_z_l)
+            w_z_l = torch.ones_like(m_z_l)
             for l in range(L):
                 f = functions[l]
-                m_a_l = torch.matmul(m_p[l][:,1:], m_z_l) + m_p[l][:,0]
-                s_a_l = (s_p[l][:,0] + torch.matmul(m_p[l][:,1:] ** 2, s_z_l)
-                + torch.matmul(s_p[l][:,1:], m_z_l ** 2) + torch.matmul(s_p[l][:,1:], s_z_l))
-
-                m_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6)) + f(m_a_l - torch.sqrt(s_a_l + 1e-6))) / 2
-                s_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6))**2 + f(m_a_l - torch.sqrt(s_a_l + 1e-6))**2) / 2 - m_z_l ** 2
-
-            y_mean[:,i] = m_z_l
+                # either calculate m, s and w or just 3*mix_size - 1 moments
+                a_l_moments = MomentApprox.activation_input_approx_moment_to_moment(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
+                z_l_moments = MomentApprox.activation_output_approx_moment_to_moment(a_l_moments) # this one needs to be converting the moments to the parameters
+                y_mean[:,i] = m_z_l
             y_var[:,i] = s_z_l
 
         return y_mean, y_var

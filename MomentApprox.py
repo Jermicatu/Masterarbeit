@@ -6,9 +6,44 @@ from scipy.special import roots_hermite
 import GaussMixClass
 import MomentsMakeMix
 from logger_config import logger
-
 import math
 
+# new functions for UncertaintyQuantificationGaussMix
+
+def activation_input_approx_moment_to_moment(z_moments, m_p, s_p, mix_w_p):
+    w_moments = MomentsMakeMix.MixToMoments(m_p, s_p, mix_w_p) # TODO: Not yet implemented but should be differentiable and geve moments in the form specified below
+
+    # at this point z_l_moments size should be: z_size, max_moment
+    # at this point w_l_moments size should be: a_size, z_size + 1, max_moment
+    # the max_moment includes the moment 0 meaning that max_moment = 3 * mix_size
+
+    z_size = z_moments.size(0)
+    a_size = w_moments.size(0)
+    max_moment = z_moments.size(-1)
+
+    result = torch.zeros(a_size, max_moment)
+    
+    for j in range(a_size):
+        # Start with bias moments (index 0), make a copy
+        cumulative = w_moments[j,0,:].clone()
+        # Add each z_i * w_{i,j} term (note: W[j][0] corresponds to z[0])
+        for i in range(z_size):
+            # Element-wise product of moments: m_k(z_i * w_{i+1,j}) = m_k(z_i) * m_k(w_{i,j})
+            product_moments = z_moments[i,:] * w_moments[j,i+1,:]
+                    
+            # Convolve: m_k(S + X) = sum_{split=0}^k C(k,split) * m_split(S) * m_{k-split}(X)
+            new_cumulative = torch.zeros(max_moment)
+            new_cumulative[0] = 1
+            for k in range(1, max_moment):
+                for split in range(k + 1):
+                    new_cumulative[k] += math.comb(k, split) * cumulative[split] * product_moments[k - split]
+                    
+            cumulative = new_cumulative.clone()
+
+        result[j,:] = cumulative
+
+    return result
+        
 # functions needed for the calculations
 
 def ReLu(x):
