@@ -10,9 +10,9 @@ import math
 
 # new functions for UncertaintyQuantificationGaussMix
 
-def activation_input_approx_moment_to_moment(z_moments, m_p, s_p, mix_w_p):
-    w_moments = MomentsMakeMix.MixToMoments(m_p, s_p, mix_w_p) # TODO: Not yet implemented but should be differentiable and geve moments in the form specified below
-
+def activation_input_approx_moment_to_moment(z_moments, m, s, mix_w):
+    w_moments = MomentsMakeMix.MixToMoments(m, s, mix_w) 
+    
     # at this point z_l_moments size should be: z_size, max_moment
     # at this point w_l_moments size should be: a_size, z_size + 1, max_moment
     # the max_moment includes the moment 0 meaning that max_moment = 3 * mix_size
@@ -21,7 +21,7 @@ def activation_input_approx_moment_to_moment(z_moments, m_p, s_p, mix_w_p):
     a_size = w_moments.size(0)
     max_moment = z_moments.size(-1)
 
-    result = torch.zeros(a_size, max_moment)
+    a_moments = torch.zeros(a_size, max_moment)
     
     for j in range(a_size):
         # Start with bias moments (index 0), make a copy
@@ -40,10 +40,27 @@ def activation_input_approx_moment_to_moment(z_moments, m_p, s_p, mix_w_p):
                     
             cumulative = new_cumulative.clone()
 
-        result[j,:] = cumulative
+        a_moments[j,:] = cumulative
 
-    return result
-        
+    return a_moments
+
+def activation_output_approx_moment_to_moment(a_moments, f):
+    m, s, w_mix = MomentsMakeMix.MomentsToMix(a_moments) # TODO check if its differentiable
+    z_size = m.size(0)
+    max_moments = a_moments.size(0)
+
+    z_moments = torch.ones(z_size, max_moments)
+
+    f_plus = f(m + torch.sqrt(s + 1e-8))
+    f_minus = f(m - torch.sqrt(s + 1e-8))
+
+    # This part can be vectorized more but for readability I leave it like that for now
+    for j in range(z_size):
+        for k in range(1, max_moments):
+            z_moments[j, k] = torch.sum(w_mix[j,:] * (f_plus[j,:]**k + f_minus[j,:]**k)) / 2
+
+    return z_moments
+
 # functions needed for the calculations
 
 def ReLu(x):

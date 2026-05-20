@@ -5,6 +5,29 @@ import numpy as np
 import GaussMixClass
 from logger_config import logger
 
+# new functions for UncertaintyQuantificationGaussMix
+
+def MixToMoments(m, s, mix_w):
+    # m, s and mix_w are all tensors of the same size: mix_size
+    mix_size = m.size(0)
+    max_moment = 3 * mix_size
+
+    moments = torch.zeros(max_moment)
+
+    for i in range(mix_size):
+        individual_moments = torch.ones(max_moment)
+        individual_moments[1] = m[i]
+        individual_moments[2] = m[i]**2 + s[i]
+
+        for k in range(3, max_moment):      # k here corresponds to (k+1)-th moment
+            individual_moments[k] = m[i] * individual_moments[k-1] + (k-1) * s[i] * individual_moments[k-2]
+        
+        moments += mix_w[i] * individual_moments
+
+    return moments
+
+# Previous functions
+
 def gaussian_moments(mu, v, max_moment):
     """
     Raw non-central moments M_1 .. M_{max_moment} of N(mu, v).

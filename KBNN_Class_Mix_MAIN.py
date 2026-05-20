@@ -5,7 +5,7 @@ import time
 import numpy as np
 import random
 import GaussMixClass
-import MomentApprox
+import LayerMomentApprox
 from Pb_solver import mix_density_mult_approx
 
 from torch import tanh as tanh
@@ -76,8 +76,8 @@ class KBBN_mix_class_new:
 
         # in each layer l
         for l in range(0, len(dimensions)-1):
-            a_l = MomentApprox.activation_input_approx(z_l, f, mix_size)
-            z_l = MomentApprox.activation_output_approx(a_l, weights[l], mix_size)
+            a_l = LayerMomentApprox.activation_input_approx(z_l, f, mix_size)
+            z_l = LayerMomentApprox.activation_output_approx(a_l, weights[l], mix_size)
             output[l][0] = [gm.clone() for gm in a_l] 
             output[l][1] = [gm.clone() for gm in z_l]
 

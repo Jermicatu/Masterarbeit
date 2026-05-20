@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import GaussMixClass
-import MomentApprox
+import LayerMomentApprox
 from logger_config import logger
 
 def id(x):
@@ -122,8 +122,8 @@ class myMixBNN:
             for l in range(L):
                 f = functions[l]
                 # either calculate m, s and w or just 3*mix_size - 1 moments
-                a_l_moments = MomentApprox.activation_input_approx_moment_to_moment(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
-                z_l_moments = MomentApprox.activation_output_approx_moment_to_moment(a_l_moments) # this one needs to be converting the moments to the parameters
+                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
+                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments) # this one needs to be converting the moments to the parameters
                 y_mean[:,i] = m_z_l
             y_var[:,i] = s_z_l
 
