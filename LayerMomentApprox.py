@@ -80,12 +80,52 @@ def MixToMoments(m, s, mix_w):
 
     return moments
 
+def unpack_theta_torch(theta, n):
+    """
+    Unpack theta into physical parameters.
+
+    Returns
+    -------
+    w, mu, v : each torch.Tensor, shape (n,)
+    """
+    z = theta[:n-1]
+    mu = theta[n-1:2*n-1]
+    l = theta[2*n-1:3*n-1]
+
+    # stable softmax
+    z_full = torch.cat([z, torch.zeros(1, device=z.device)])
+    z_full = z_full - z_full.max()
+    w = torch.exp(z_full)
+    w = w / w.sum()
+
+    v = torch.exp(l)
+
+    return mu, v, w
+
 def MomentsToMix(a_moments):
     # a_moments should be of shape (a_size, 3 * mix_size = max_moments)
     a_size = a_moments.size(0)
     mix_size = a_moments.size(1) / 3
 
-    # TODO: but a differentiable way to calculate w_opt, m_opt, s_opt here
+    theta = torch.nn.Parameter(torch.randn(3*mix_size - 1) * 2)  # wider spread
+    optimizer = torch.optim.Adam([theta], lr=0.05)
+
+    for step in range(2000):
+        optimizer.zero_grad()
+        w, m, s = unpack_theta_torch(theta, mix_size)
+        a_pred = MixToMoments(w, m, s)
+        loss = torch.sum((a_pred - a_moments)**2)
+
+        grad_theta = torch.autograd.grad(
+            loss.sum(), theta,
+            create_graph=True, retain_graph=True
+        )[0]
+
+        loss.backward()
+        optimizer.step()
+
+    # Unpack best solution
+    m_opt, s_opt, w_opt = unpack_theta_torch(theta, mix_size)
 
     # They all should be of shape (a_size, mix_size)
-    return w_opt, m_opt, s_opt
+    return m_opt, s_opt, w_opt
