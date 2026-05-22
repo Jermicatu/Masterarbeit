@@ -62,21 +62,25 @@ def activation_output_approx(a_moments, f):
 # functions needed for the calculations
 
 def MixToMoments(m, s, mix_w):
-    # m, s and mix_w are all tensors of the same size: mix_size
-    mix_size = m.size(0)
+    # m, s and mix_w are all tensors of the same size: batch, mix_size
+    batch_size = m.size(0)
+    mix_size = m.size(1)
     max_moment = 3 * mix_size
+    print("Hi")
 
-    moments = torch.zeros(max_moment)
+    moments = torch.zeros(batch_size, max_moment)
 
     for i in range(mix_size):
-        individual_moments = torch.ones(max_moment)
-        individual_moments[1] = m[i]
-        individual_moments[2] = m[i]**2 + s[i]
+        individual_moments = torch.ones(batch_size, max_moment)
+        print(individual_moments[:, 1].size())
+        print(m[:, i].size())
+        individual_moments[:, 1] = m[:, i]
+        individual_moments[:, 2] = m[:, i]**2 + s[:, i]
 
         for k in range(3, max_moment):      # k here corresponds to (k+1)-th moment
-            individual_moments[k] = m[i] * individual_moments[k-1] + (k-1) * s[i] * individual_moments[k-2]
+            individual_moments[:, k] = m[:, i] * individual_moments[:, k-1] + (k-1) * s[:, i] * individual_moments[:, k-2]
             
-        moments += mix_w[i] * individual_moments
+        moments += mix_w[:, i] * individual_moments[:]
 
     return moments
 
@@ -115,12 +119,6 @@ def MomentsToMix(a_moments):
         w, m, s = unpack_theta_torch(theta, mix_size)
         a_pred = MixToMoments(w, m, s)
         loss = torch.sum((a_pred - a_moments)**2)
-
-        grad_theta = torch.autograd.grad(
-            loss.sum(), theta,
-            create_graph=True, retain_graph=True
-        )[0]
-
         loss.backward()
         optimizer.step()
 
