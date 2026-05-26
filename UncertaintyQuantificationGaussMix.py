@@ -122,6 +122,7 @@ class myMixBNN:
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
                 f = functions[l]
+                print(s_p[l].size())
                 # either calculate m, s and w or just 3*mix_size - 1 moments
                 a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
                 z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, f[l]) # this one needs to be converting the moments to the parameters
