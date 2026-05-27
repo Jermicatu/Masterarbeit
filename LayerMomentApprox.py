@@ -67,21 +67,24 @@ def MixToMoments(m, s, mix_w):
     mix_size = m.size(-1)
     max_moment = 3 * mix_size
 
-    moments = torch.zeros(batch_shape + (3 * m.shape[-1],))
+    moments = torch.ones(batch_shape + (1))
 
-    for i in range(mix_size):
-        m_i = m[..., i]              # shape: [...]
-        s_i = s[..., i]
-        w_i = mix_w[..., i]
-        individual_moments = torch.ones(batch_shape + (3 * m.shape[-1],))
-        individual_moments[..., 1] = m[..., i]
-        individual_moments[..., 2] = m[..., i]**2 + s[..., i]
-
-        for k in range(3, max_moment):      # k here corresponds to (k+1)-th moment
-            individual_moments[..., k] = m[..., i] * individual_moments[..., k-1] + (k-1) * s[..., i] * individual_moments[..., k-2]
-            
-        moments += mix_w[..., i] * individual_moments[...]
-
+    m1 = (mix_w * m).sum(dim=-1, keepdim=True)      # [..., 1]
+    moments = torch.cat([moments, m1], dim=-1)      # [..., 2]
+    
+    mu_2 = m**2 + s
+    m2 = (mix_w * mu_2).sum(dim=-1, keepdim=True)   # [..., 1]
+    moments = torch.cat([moments, m2], dim=-1)      # [..., 3]
+    
+    # Recurrence state
+    mu_km2, mu_km1, mu_k = torch.ones_like(m), m, mu_2
+    
+    for k in range(3, max_moment):
+        mu_next = m * mu_k + (k-1) * s * mu_km2     # [..., mix_size]
+        mk = (mix_w * mu_next).sum(dim=-1, keepdim=True)  # [..., 1]
+        moments = torch.cat([moments, mk], dim=-1)  # [..., k+1]
+        mu_km2, mu_km1, mu_k = mu_km1, mu_k, mu_next
+        
     return moments
 
 def unpack_theta_torch(theta, n):
