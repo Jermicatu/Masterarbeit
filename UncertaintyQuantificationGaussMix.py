@@ -22,7 +22,6 @@ class myMixBNN:
 
         L = len(dimensions) - 1
         self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1, mix_size) * 0.1 for l in range(L)]
-        print(self.m)
         self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) for l in range(L)]
         self.w = [torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) / mix_size for l in range(L)]
         
@@ -116,16 +115,14 @@ class myMixBNN:
         y_var = torch.ones(dimensions[-1], len(x_data))
 
         for i in range(len(x_data)):
-            m_z_start = x_data[i:i+1].unsqueeze(1)
+            m_z_start = x_data[i:i+1].unsqueeze(1).expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start)
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
-                f = functions[l]
-                print(s_p[l].size())
                 # either calculate m, s and w or just 3*mix_size - 1 moments
                 a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
-                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, f[l]) # this one needs to be converting the moments to the parameters
+                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l]) # this one needs to be converting the moments to the parameters
 
         y_mean, y_var, y_weights = LayerMomentApprox.MomentsToMix(z_l_moments)
 

@@ -10,6 +10,8 @@ import math
 
 def activation_input_approx(z_moments, m, s, mix_w):
     w_moments = MixToMoments(m, s, mix_w) 
+    print(m.size())
+    print(w_moments.size())
     
     # at this point z_l_moments size should be: z_size, max_moment
     # at this point w_l_moments size should be: a_size, z_size + 1, max_moment
@@ -67,7 +69,7 @@ def MixToMoments(m, s, mix_w):
     mix_size = m.size(-1)
     max_moment = 3 * mix_size
 
-    moments = torch.ones(batch_shape + (1))
+    moments = torch.ones(batch_shape + (1,))
 
     m1 = (mix_w * m).sum(dim=-1, keepdim=True)      # [..., 1]
     moments = torch.cat([moments, m1], dim=-1)      # [..., 2]
