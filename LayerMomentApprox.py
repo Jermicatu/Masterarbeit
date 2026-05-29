@@ -95,17 +95,17 @@ def unpack_theta_torch(theta, n):
 
     Returns
     -------
-    w, mu, v : each torch.Tensor, shape (n,)
+    mu, v, w : each torch.Tensor, shape (dim1, n)
     """
-    z = theta[:n-1]
-    mu = theta[n-1:2*n-1]
-    l = theta[2*n-1:3*n-1]
+    z = theta[:,:n-1]
+    mu = theta[:,n-1:2*n-1]
+    l = theta[:,2*n-1:3*n-1]
 
     # stable softmax
-    z_full = torch.cat([z, torch.zeros(1, device=z.device)])
+    z_full = torch.cat([z, torch.zeros(z.size(0), 1, device=z.device)])
     z_full = z_full - z_full.max()
     w = torch.exp(z_full)
-    w = w / w.sum()
+    w = w / w.sum(dim=-1, keepdim=True)
 
     v = torch.exp(l)
 
@@ -114,9 +114,9 @@ def unpack_theta_torch(theta, n):
 def MomentsToMix(a_moments):
     # a_moments should be of shape (a_size, 3 * mix_size = max_moments)
     a_size = a_moments.size(0)
-    mix_size = a_moments.size(1) / 3
+    mix_size = int(a_moments.size(1) / 3)
 
-    theta = torch.nn.Parameter(torch.randn(3*mix_size - 1) * 2)  # wider spread
+    theta = torch.nn.Parameter(torch.randn(a_size, 3*mix_size - 1) * 2)  # wider spread
     optimizer = torch.optim.Adam([theta], lr=0.05)
 
     for step in range(2000):
