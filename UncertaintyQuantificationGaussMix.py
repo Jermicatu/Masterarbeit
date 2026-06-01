@@ -111,11 +111,13 @@ class myMixBNN:
         s_p = self.s
         mix_w_p = self.w
 
-        y_mean = torch.zeros(dimensions[-1], len(x_data))
-        y_var = torch.ones(dimensions[-1], len(x_data))
+        data_size = x_data.size(0)
+
+        output_mean = torch.zeros(data_size, dimensions[-1])
+        output_var = torch.zeros(data_size, dimensions[-1])
 
         for i in range(len(x_data)):
-            m_z_start = x_data[i:i+1].unsqueeze(1).expand(-1, mix_size)
+            m_z_start = x_data[i:i+1].expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start)
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
@@ -124,16 +126,16 @@ class myMixBNN:
                 a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
                 z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l]) # this one needs to be converting the moments to the parameters
 
-        y_mean, y_var, y_weights = LayerMomentApprox.MomentsToMix(z_l_moments)
+            output_mean[i, :], output_var[i,:] = z_l_moments[:, 1], z_l_moments[:, 2] - z_l_moments[:, 1]**2
 
-        return y_mean, y_var, y_weights
+        return output_mean, output_var
 
 def test1():
     dimensions = [1, 2, 1, 1]
-    functions = [torch.tanh, torch.tanh, id]
+    functions = [torch.tanh, torch.tanh, lambda x: x]
     network = myMixBNN(dimensions, functions, mix_size=2)
 
-    x_data = torch.linspace(-3, 3, steps=50)
+    x_data = torch.linspace(-3, 3, steps=5).unsqueeze(-1)
     y_data = torch.cos(x_data)
 
     m_q = network.m
@@ -145,8 +147,10 @@ def test1():
     print(y_m)
     print(y_s)
 
-    y_pred = y_m.squeeze(0)
-    y_s = y_s.squeeze(0)
+    y_pred = y_m.squeeze().detach().numpy()
+    y_s = y_s.squeeze().detach().numpy()
+    x_data = x_data.squeeze().detach().numpy()
+    y_data = y_data.detach().numpy()
 
     plt.plot(x_data, y_data, 'ro', label="cos(x)")
     plt.plot(x_data, y_pred, label="Network output")

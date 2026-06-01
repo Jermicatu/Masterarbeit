@@ -9,10 +9,9 @@ import math
 # new functions for UncertaintyQuantificationGaussMix
 
 def activation_input_approx(z_moments, m, s, mix_w):
-    w_moments = MixToMoments(m, s, mix_w) 
-    print(m.size())
-    print(w_moments.size())
-    
+    # should work (aka. tested it)
+    w_moments = MixToMoments(m, s, mix_w)
+        
     # at this point z_l_moments size should be: z_size, max_moment
     # at this point w_l_moments size should be: a_size, z_size + 1, max_moment
     # the max_moment includes the moment 0 meaning that max_moment = 3 * mix_size
@@ -22,22 +21,22 @@ def activation_input_approx(z_moments, m, s, mix_w):
     max_moment = z_moments.size(-1)
 
     a_moments = torch.zeros(a_size, max_moment)
-    
+        
     for j in range(a_size):
         # Start with bias moments (index 0), make a copy
-        cumulative = w_moments[j,0,:].clone()
+        cumulative = w_moments[j,0].clone()
         # Add each z_i * w_{i,j} term (note: W[j][0] corresponds to z[0])
         for i in range(z_size):
             # Element-wise product of moments: m_k(z_i * w_{i+1,j}) = m_k(z_i) * m_k(w_{i,j})
-            product_moments = z_moments[i,:] * w_moments[j,i+1,:]
-                    
+            product_moments = z_moments[i] * w_moments[j,i+1]
+                        
             # Convolve: m_k(S + X) = sum_{split=0}^k C(k,split) * m_split(S) * m_{k-split}(X)
             new_cumulative = torch.zeros(max_moment)
             new_cumulative[0] = 1
             for k in range(1, max_moment):
                 for split in range(k + 1):
                     new_cumulative[k] += math.comb(k, split) * cumulative[split] * product_moments[k - split]
-                    
+                        
             cumulative = new_cumulative.clone()
 
         a_moments[j,:] = cumulative
@@ -47,7 +46,7 @@ def activation_input_approx(z_moments, m, s, mix_w):
 def activation_output_approx(a_moments, f):
     m, s, w_mix = MomentsToMix(a_moments) # TODO check if its differentiable
     z_size = m.size(0)
-    max_moments = a_moments.size(0)
+    max_moments = a_moments.size(1)
 
     z_moments = torch.ones(z_size, max_moments)
 
@@ -64,6 +63,7 @@ def activation_output_approx(a_moments, f):
 # functions needed for the calculations
 
 def MixToMoments(m, s, mix_w):
+    # should work (aka. tested it)
     # m, s and mix_w are all tensors of the same size: dim1, dim2 , mix_size OR dim1 mix_size
     batch_shape = m.shape[:-1]
     mix_size = m.size(-1)
@@ -79,13 +79,13 @@ def MixToMoments(m, s, mix_w):
     moments = torch.cat([moments, m2], dim=-1)      # [..., 3]
     
     # Recurrence state
-    mu_km2, mu_km1, mu_k = torch.ones_like(m), m, mu_2
+    mu_km2, mu_km1 = m, mu_2
     
     for k in range(3, max_moment):
-        mu_next = m * mu_k + (k-1) * s * mu_km2     # [..., mix_size]
+        mu_next = m * mu_km1 + (k-1) * s * mu_km2     # [..., 1]
         mk = (mix_w * mu_next).sum(dim=-1, keepdim=True)  # [..., 1]
         moments = torch.cat([moments, mk], dim=-1)  # [..., k+1]
-        mu_km2, mu_km1, mu_k = mu_km1, mu_k, mu_next
+        mu_km2, mu_km1 = mu_km1, mu_next
         
     return moments
 
@@ -102,8 +102,8 @@ def unpack_theta_torch(theta, n):
     l = theta[:,2*n-1:3*n-1]
 
     # stable softmax
-    z_full = torch.cat([z, torch.zeros(z.size(0), 1, device=z.device)])
-    z_full = z_full - z_full.max()
+    z_full = torch.cat([z, torch.zeros(z.size(0), 1, device=z.device)], dim=1)
+    z_full = z_full - z_full.max(dim=1, keepdim=True)[0]
     w = torch.exp(z_full)
     w = w / w.sum(dim=-1, keepdim=True)
 
@@ -113,6 +113,7 @@ def unpack_theta_torch(theta, n):
 
 def MomentsToMix(a_moments):
     # a_moments should be of shape (a_size, 3 * mix_size = max_moments)
+    a_moments = a_moments.detach()
     a_size = a_moments.size(0)
     mix_size = int(a_moments.size(1) / 3)
 
@@ -121,8 +122,8 @@ def MomentsToMix(a_moments):
 
     for step in range(2000):
         optimizer.zero_grad()
-        w, m, s = unpack_theta_torch(theta, mix_size)
-        a_pred = MixToMoments(w, m, s)
+        m, s, w = unpack_theta_torch(theta, mix_size)
+        a_pred = MixToMoments(m, s, w)
         loss = torch.sum((a_pred - a_moments)**2)
         loss.backward()
         optimizer.step()
@@ -132,3 +133,56 @@ def MomentsToMix(a_moments):
 
     # They all should be of shape (a_size, mix_size)
     return m_opt, s_opt, w_opt
+
+def test0():
+    # test MomentsToMix
+
+    a_moments = torch.tensor([
+        [  1.0000,   0.8000,   4.5000,   4.6000,  20.0000,  33.4000],
+        [  1.0000,   1.4000,   6.3800,  17.1000,  51.7200, 169.8560]
+    ])
+
+    m_opt, s_opt, w_opt = MomentsToMix(a_moments)
+
+    print(m_opt)
+    print(s_opt)
+    print(w_opt)
+
+def test1():
+    # test activation_input_approx
+
+    # These are random moments. I dont know what the Gaussian mix would look like
+    # z has 2 elements that are Gaussian mixtures of size 2 aka. 6 moments with the first beeing the 0-th moment
+    z_moments = torch.tensor([
+        [  1.0000,   0.8000,   4.5000,   4.6000,  20.0000,  33.4000],
+        [  1.0000,   1.4000,   6.3800,  17.1000,  51.7200, 169.8560]
+    ])
+    
+    # Parameters that describe the Gaussian mixture of the 3 weights (1st is bias) that we multiply with z (except bias of course)
+    m = torch.tensor([[[-1, 1], 
+                       [-1, 1],
+                       [-3, 3]]])
+    s = torch.ones(1,3,2)
+    mix_w = torch.ones(1,3,2) - 0.5
+
+    # test is here
+    a_moments = activation_input_approx(z_moments, m, s, mix_w)
+    print(a_moments)
+
+def test2():
+    #test activation_output_approx
+    a_moments = torch.tensor([
+        [  1.0000,   0.8000,   4.5000,   4.6000,  20.0000,  33.4000],
+        [  1.0000,   1.4000,   6.3800,  17.1000,  51.7200, 169.8560]
+    ])
+
+    def relu(x):
+        return torch.relu(x)
+
+    z_moments = activation_output_approx(a_moments, relu)
+    print("MOMENTS ARE:")
+    print(z_moments)
+
+if __name__ == "__main__":
+    print("INITIATE TESTS:")
+    test2()
