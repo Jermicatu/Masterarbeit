@@ -25,10 +25,11 @@ class myMixBNN:
         self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) for l in range(L)]
         self.w = [torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) / mix_size for l in range(L)]
         
-    def forwardPass(self, m_q, s_q, x_data, y_data):
+    def forwardPass(self, m_q, s_q, w_q, x_data, y_data):
         # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
         dimensions = self.dimensions
         functions = self.functions
+        mix_size = self.mix_size
         data_variance = self.data_variance
         L = len(dimensions) - 1
         
@@ -36,21 +37,20 @@ class myMixBNN:
 
         sol = 0
 
-        for i in range(len(x_data)):
-            # TODO: fix to mix
-            m_z_l = x_data[i:i+1]
-            s_z_l = torch.zeros_like(m_z_l)
+        for i in range(x_data.size(0)):
             y = y_data[i]
+            x = x_data[i]
+            m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
+            s_z_start = torch.zeros_like(m_z_start)
+            w_z_start = torch.ones_like(m_z_start)
+            z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
-                f = functions[l]
-                m_a_l = torch.matmul(m_q[l][:,1:], m_z_l) + m_q[l][:,0]
-                s_a_l = (s_q[l][:,0] + torch.matmul(m_q[l][:,1:] ** 2, s_z_l)
-                + torch.matmul(s_q[l][:,1:], m_z_l ** 2) + torch.matmul(s_q[l][:,1:], s_z_l))
+                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_q[l], s_q[l], w_q[l]) 
+                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l])
 
-                m_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6)) + f(m_a_l - torch.sqrt(s_a_l + 1e-6))) / 2
-                s_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6))**2 + f(m_a_l - torch.sqrt(s_a_l + 1e-6))**2) / 2 - m_z_l ** 2
-
-            sol += - 0.5 * math.log(2 * math.pi * data_variance) - ((y - m_z_l)**2 + s_z_l) / (2 * data_variance)
+            m_output = z_l_moments[:, 1]
+            s_output = z_l_moments[:, 2] - m_output**2
+            sol -= torch.sum(0.5 * math.log(2 * math.pi * data_variance) + ((y - m_output)**2 + s_output) / (2 * data_variance))
 
         return sol.sum()
 
@@ -120,15 +120,16 @@ class myMixBNN:
         output_mean = torch.zeros(data_size, dimensions[-1])
         output_var = torch.zeros(data_size, dimensions[-1])
 
-        for i in range(len(x_data)):
-            m_z_start = x_data[i:i+1].expand(-1, mix_size)
+        for i in range(x_data.size(0)):
+            x = x_data[i] # TODO: adjust example
+            m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start)
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
                 # either calculate m, s and w or just 3*mix_size - 1 moments
-                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) # this one should work without converting the moments to the parameters
-                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l]) # this one needs to be converting the moments to the parameters
+                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) 
+                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l])
 
             output_mean[i, :], output_var[i,:] = z_l_moments[:, 1], z_l_moments[:, 2] - z_l_moments[:, 1]**2
 
@@ -172,3 +173,6 @@ def test1():
 if __name__ == "__main__":
     print("INITIATE TESTS:")
     test1()
+
+
+    # TODO: write in the master paper the changed formulas for the ELBO etc.
