@@ -84,10 +84,9 @@ class myMixBNN:
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
         log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
         w_q = [w.clone().detach().requires_grad_(True) for w in self.w]
+        logit_w_q = [torch.zeros_like(w).requires_grad_(True) for w in self.w]
 
-        # TODO: fix to mix
-        
-        optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
+        optimizer = torch.optim.Adam(m_q + log_s_q + logit_w_q, lr=lr)
 
         for epoch in range(epochs):
 
@@ -95,11 +94,12 @@ class myMixBNN:
 
             optimizer.zero_grad()
             s_q = [torch.exp(ls) for ls in log_s_q]
-            loss = -self.ELBO(m_q, s_q, x_data, y_data, kl_weight)
+            w_q = [torch.softmax(lw, dim=-1) for lw in logit_w_q]
+            loss = -self.ELBO(m_q, s_q, w_q, x_data, y_data, kl_weight)
             loss.backward()
             optimizer.step()
 
-            if epoch % 50 == 0:
+            if epoch % 1 == 0:
                 print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         self.m = [m.detach().clone() for m in m_q]
@@ -148,6 +148,7 @@ def test1():
     w_q = network.w
 
     # network.train(x_data, y_data)
+    network.train(x_data, y_data)
     y_m, y_s = network.predict(x_data)
     print(y_m)
     print(y_s)
