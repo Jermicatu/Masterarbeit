@@ -44,6 +44,25 @@ def activation_input_approx(z_moments, m, s, mix_w):
     return a_moments
 
 def activation_output_approx(a_moments, f):
+    m = a_moments[:, 1]
+    s = torch.clamp(a_moments[:, 2] - m**2, min=1e-6)
+    z_size = a_moments.size(0)
+    max_moments = a_moments.size(1)
+
+    z_moments = torch.ones(z_size, max_moments)
+
+    f_plus = f(m + torch.sqrt(s + 1e-8))
+    f_minus = f(m - torch.sqrt(s + 1e-8))
+
+    # This part can be vectorized more but for readability I leave it like that for now
+    for j in range(z_size):
+        for k in range(1, max_moments):
+            z_moments[j, k] = (f_plus[j]**k + f_minus[j]**k) / 2
+
+    return z_moments
+
+def activation_output_approx_mix(a_moments, f):
+    print("HOLD UP, WAIT A MINUTE, SOMETHING AIN RIGHT")
     m, s, w_mix = MomentsToMix(a_moments) # TODO check if its differentiable
     z_size = m.size(0)
     max_moments = a_moments.size(1)
@@ -113,6 +132,7 @@ def unpack_theta_torch(theta, n):
 
 def MomentsToMix(a_moments):
     # a_moments should be of shape (a_size, 3 * mix_size = max_moments)
+    print("HOLD UP, WAIT A MINUTE, SOMETHING AIN RIGHT")
     a_moments = a_moments.detach()
     a_size = a_moments.size(0)
     mix_size = int(a_moments.size(1) / 3)

@@ -5,13 +5,14 @@ import numpy as np
 import GaussMixClass
 import LayerMomentApprox
 from logger_config import logger
+import time
 
 def id(x):
     return x
 
 class myMixBNN:
     # featuring Variational interference
-    def __init__(self, dimensions, functions, mix_size, starting_variance = 5, data_variance = 1):
+    def __init__(self, dimensions, functions, mix_size, starting_variance = 1, data_variance = 0.1):
         self.dimensions = dimensions
         self.functions = functions
         self.mix_size = mix_size
@@ -42,16 +43,16 @@ class myMixBNN:
             x = x_data[i]
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
-            w_z_start = torch.ones_like(m_z_start)
+            w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
-                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_q[l], s_q[l], w_q[l]) 
+                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_q[l], s_q[l], w_q[l])
                 z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l])
 
             m_output = z_l_moments[:, 1]
             s_output = z_l_moments[:, 2] - m_output**2
             sol -= torch.sum(0.5 * math.log(2 * math.pi * data_variance) + ((y - m_output)**2 + s_output) / (2 * data_variance))
-
+            
         return sol.sum()
 
     def ELBO(self, m_q, s_q, w_q, x_data, y_data, kl_weight=1.0):
@@ -76,14 +77,13 @@ class myMixBNN:
         kl = 0
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
-            kl -= wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5 + torch.log((wq + 1e-8)/(wp + 1e-8)))
+            kl += wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5 + torch.log((wq + 1e-8)/(wp + 1e-8)))
 
         return my_ELBO - kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
         log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
-        w_q = [w.clone().detach().requires_grad_(True) for w in self.w]
         logit_w_q = [torch.zeros_like(w).requires_grad_(True) for w in self.w]
 
         optimizer = torch.optim.Adam(m_q + log_s_q + logit_w_q, lr=lr)
@@ -104,6 +104,7 @@ class myMixBNN:
 
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
+        self.w = [w.detach().clone() for w in w_q]
 
     def predict(self, x_data):
         dimensions = self.dimensions
@@ -136,11 +137,12 @@ class myMixBNN:
         return output_mean, output_var
 
 def test1():
-    dimensions = [1, 2, 1, 1]
-    functions = [torch.tanh, torch.tanh, lambda x: x]
+    dimensions = [1, 2, 1]
+    functions = [torch.tanh, lambda x: x]
     network = myMixBNN(dimensions, functions, mix_size=2)
 
-    x_data = torch.linspace(-3, 3, steps=5).unsqueeze(-1)
+
+    x_data = torch.linspace(-3, 3, steps=50).unsqueeze(-1)
     y_data = torch.cos(x_data)
 
     m_q = network.m
