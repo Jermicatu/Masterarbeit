@@ -44,7 +44,7 @@ class PaperBNN:
                 m_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6)) + f(m_a_l - torch.sqrt(s_a_l + 1e-6))) / 2
                 s_z_l = (f(m_a_l + torch.sqrt(s_a_l + 1e-6))**2 + f(m_a_l - torch.sqrt(s_a_l + 1e-6))**2) / 2 - m_z_l ** 2
 
-            sol += - 0.5 * math.log(2 * math.pi * data_variance) - ((y - m_z_l)**2 + s_z_l) / (2 * data_variance)
+            sol -= 0.5 * math.log(2 * math.pi * data_variance) + ((y - m_z_l)**2 + s_z_l) / (2 * data_variance)
 
         return sol.sum()
 
@@ -65,8 +65,9 @@ class PaperBNN:
 
         for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
             kl -= 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
-
-        return my_ELBO - kl_weight* kl
+        print("likelyhood: ", my_ELBO)
+        print("KL: ", kl)
+        return my_ELBO - kl_weight * kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
@@ -123,7 +124,7 @@ def test1():
     functions = [torch.tanh, torch.tanh, id]
     network = PaperBNN(dimensions, functions)
 
-    x_data = torch.linspace(-3, 3, steps=50)
+    x_data = torch.linspace(-3, 3, steps=20)
     y_data = torch.cos(x_data)
 
     m_q = network.m

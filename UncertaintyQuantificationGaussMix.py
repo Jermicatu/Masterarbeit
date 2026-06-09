@@ -12,7 +12,7 @@ def id(x):
 
 class myMixBNN:
     # featuring Variational interference
-    def __init__(self, dimensions, functions, mix_size, starting_variance = 1, data_variance = 0.1):
+    def __init__(self, dimensions, functions, mix_size, starting_variance = 5, data_variance = 1):
         self.dimensions = dimensions
         self.functions = functions
         self.mix_size = mix_size
@@ -77,8 +77,9 @@ class myMixBNN:
         kl = 0
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
-            kl += wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5 + torch.log((wq + 1e-8)/(wp + 1e-8)))
-
+            kl -= wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5 + torch.log((wq + 1e-8)/(wp + 1e-8)))
+        print("likelyhood: ", my_ELBO)
+        print("KL: ", kl)
         return my_ELBO - kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
@@ -137,19 +138,14 @@ class myMixBNN:
         return output_mean, output_var
 
 def test1():
-    dimensions = [1, 2, 1]
-    functions = [torch.tanh, lambda x: x]
+    dimensions = [1, 2, 1, 1]
+    functions = [torch.tanh, torch.tanh, lambda x: x]
     network = myMixBNN(dimensions, functions, mix_size=2)
 
 
-    x_data = torch.linspace(-3, 3, steps=50).unsqueeze(-1)
+    x_data = torch.linspace(-3, 3, steps=20).unsqueeze(-1)
     y_data = torch.cos(x_data)
 
-    m_q = network.m
-    s_q = network.s
-    w_q = network.w
-
-    # network.train(x_data, y_data)
     network.train(x_data, y_data)
     y_m, y_s = network.predict(x_data)
     print(y_m)
