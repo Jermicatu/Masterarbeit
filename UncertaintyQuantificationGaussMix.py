@@ -77,7 +77,7 @@ class myMixBNN:
         kl = 0
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
-            kl -= wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5 + torch.log((wq + 1e-8)/(wp + 1e-8)))
+            kl -= wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5) # + torch.log((wq + 1e-8)/(wp + 1e-8)))
         print("likelyhood: ", my_ELBO)
         print("KL: ", kl)
         return my_ELBO - kl_weight*kl

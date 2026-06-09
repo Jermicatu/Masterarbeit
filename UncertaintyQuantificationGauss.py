@@ -7,7 +7,7 @@ def id(x):
     return x
 
 class PaperBNN:
-    def __init__(self, dimensions, functions, starting_variance = 5, data_variance = 1):
+    def __init__(self, dimensions, functions, starting_variance = 10, data_variance = 1):
         self.dimensions = dimensions
         self.functions = functions
         self.data_variance = data_variance
@@ -64,7 +64,7 @@ class PaperBNN:
         kl = 0
 
         for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
-            kl -= 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
+            kl += 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
         print("likelyhood: ", my_ELBO)
         print("KL: ", kl)
         return my_ELBO - kl_weight * kl
@@ -120,15 +120,12 @@ class PaperBNN:
         return y_mean, y_var
 
 def test1():
-    dimensions = [1, 2, 1, 1]
+    dimensions = [1, 20, 1, 1]
     functions = [torch.tanh, torch.tanh, id]
     network = PaperBNN(dimensions, functions)
 
-    x_data = torch.linspace(-3, 3, steps=20)
+    x_data = torch.linspace(-3, 3, steps=50)
     y_data = torch.cos(x_data)
-
-    m_q = network.m
-    s_q = network.s
 
     network.train(x_data, y_data)
     y_m, y_s = network.predict(x_data)
