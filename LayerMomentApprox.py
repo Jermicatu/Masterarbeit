@@ -6,6 +6,35 @@ from scipy.special import roots_hermite
 from logger_config import logger
 import math
 
+def activation_input_approx_vectorized(z_moments, m, s, mix_w):
+    w_moments = MixToMoments(m, s, mix_w)
+            
+    # at this point z_moments size should be: z_size, max_moment
+    # at this point w_moments size should be: a_size, z_size + 1, max_moment
+    # the max_moment includes the moment 0 meaning that max_moment = 3 * mix_size
+
+    z_size = z_moments.size(0)
+    a_size = w_moments.size(0)
+    max_moment = z_moments.size(-1)
+
+    a_moments = torch.zeros(a_size, max_moment)
+    a_moments[:,0] = torch.ones(a_size)
+
+    # Start with bias moments (index 0), make a copy
+    bias_moments = w_moments[:,0].clone()
+    # Element-wise product of moments: m_k(z_i * w_{i+1,j}) = m_k(z_i) * m_k(w_{i,j})
+    product_moments = z_moments * w_moments[:,1:]
+    
+    for i in range(z_size):
+        for k in range(1, max_moment):
+            new_cumulative = torch.zeros(a_size, max_moment)
+            new_cumulative[:, 0] = torch.ones(a_size)
+            for split in range(k + 1):
+                new_cumulative[:, k] += math.comb(k, split) * old_cumulative[:, split] * product_moments[:, i, k - split]
+            old_cumulative = new_cumulative.clone()
+
+    return a_moments
+
 # new functions for UncertaintyQuantificationGaussMix
 
 def activation_input_approx(z_moments, m, s, mix_w):
@@ -205,4 +234,9 @@ def test2():
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    test2()
+    # test2()
+
+    a = torch.rand(2,3,4)
+    b = torch.rand(3,4)
+    print(a)
+    print(a[:,1:])

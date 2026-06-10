@@ -64,7 +64,7 @@ class PaperBNN:
         kl = 0
 
         for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
-            kl += 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
+            kl -= 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
         print("likelyhood: ", my_ELBO)
         print("KL: ", kl)
         return my_ELBO - kl_weight * kl
