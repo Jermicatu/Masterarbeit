@@ -6,6 +6,7 @@ import GaussMixClass
 import LayerMomentApprox
 from logger_config import logger
 import time
+from torch.func import vmap
 
 def id(x):
     return x
@@ -25,7 +26,34 @@ class myMixBNN:
         self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1, mix_size) * 0.1 for l in range(L)]
         self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) for l in range(L)]
         self.w = [torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) / mix_size for l in range(L)]
+
+    def forwardPass_vectorized(self, m_q, s_q, w_q, x_data, y_data):
+        # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
+        dimensions = self.dimensions
+        functions = self.functions
+        mix_size = self.mix_size
+        data_variance = self.data_variance
+        L = len(dimensions) - 1
+            
+        assert len(x_data) == len(y_data), f"size of x and y do not match"
+
+        def singlePass(x, y, m_q, s_q, w_q):
+            m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
+            print(m_z_start.size())
+            s_z_start = torch.zeros_like(m_z_start)
+            w_z_start = torch.ones_like(m_z_start) / mix_size
+            z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
+            for l in range(L):
+                a_l_moments = LayerMomentApprox.activation_input_approx_vectorized(z_l_moments, m_q[l], s_q[l], w_q[l])
+                z_l_moments = LayerMomentApprox.activation_output_approx_vectorized(a_l_moments, functions[l])
+
+            m_output = z_l_moments[:, 1]
+            s_output = z_l_moments[:, 2] - m_output**2            
+            return - torch.sum(0.5 * math.log(2 * math.pi * data_variance) + ((y - m_output)**2 + s_output) / (2 * data_variance))
         
+        sol = vmap(singlePass, in_dims=(0, 0, None, None, None))(x_data, y_data, m_q, s_q, w_q)     
+        return sol.sum()
+
     def forwardPass(self, m_q, s_q, w_q, x_data, y_data):
         # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
         dimensions = self.dimensions
@@ -46,8 +74,8 @@ class myMixBNN:
             w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
-                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_q[l], s_q[l], w_q[l])
-                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l])
+                a_l_moments = LayerMomentApprox.activation_input_approx_vectorized(z_l_moments, m_q[l], s_q[l], w_q[l])
+                z_l_moments = LayerMomentApprox.activation_output_approx_vectorized(a_l_moments, functions[l])
 
             m_output = z_l_moments[:, 1]
             s_output = z_l_moments[:, 2] - m_output**2
@@ -62,10 +90,9 @@ class myMixBNN:
         s_p = self.s
         w_p = self.w
 
-        # TODO: fix to mix
         # I am using matched component KL as an approximation
 
-        my_ELBO = self.forwardPass(m_q, s_q, w_q, x_data, y_data)
+        my_ELBO = self.forwardPass_vectorized(m_q, s_q, w_q, x_data, y_data)
 
         flat_mq = torch.cat([ml.flatten() for ml in m_q])
         flat_sq = torch.cat([sl.flatten() for sl in s_q])
@@ -77,10 +104,10 @@ class myMixBNN:
         kl = 0
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
-            kl -= wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5) # + torch.log((wq + 1e-8)/(wp + 1e-8)))
+            kl += wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5) # + torch.log((wq + 1e-8)/(wp + 1e-8)))
         print("likelyhood: ", my_ELBO)
         print("KL: ", kl)
-        return my_ELBO - kl_weight*kl
+        return my_ELBO # - kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
@@ -91,7 +118,7 @@ class myMixBNN:
 
         for epoch in range(epochs):
 
-            kl_weight = min(1.0, epoch / 400.0)
+            kl_weight = min(1.0, epoch / 800.0)
 
             optimizer.zero_grad()
             s_q = [torch.exp(ls) for ls in log_s_q]
@@ -130,8 +157,8 @@ class myMixBNN:
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
                 # either calculate m, s and w or just 3*mix_size - 1 moments
-                a_l_moments = LayerMomentApprox.activation_input_approx(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) 
-                z_l_moments = LayerMomentApprox.activation_output_approx(a_l_moments, functions[l])
+                a_l_moments = LayerMomentApprox.activation_input_approx_vectorized(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) 
+                z_l_moments = LayerMomentApprox.activation_output_approx_vectorized(a_l_moments, functions[l])
 
             output_mean[i, :], output_var[i,:] = z_l_moments[:, 1], z_l_moments[:, 2] - z_l_moments[:, 1]**2
 
