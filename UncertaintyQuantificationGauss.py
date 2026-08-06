@@ -120,7 +120,7 @@ class PaperBNN:
         return y_mean, y_var
 
 def test1():
-    dimensions = [1, 20, 1, 1]
+    dimensions = [1, 2, 1, 1]
     functions = [torch.tanh, torch.tanh, id]
     network = PaperBNN(dimensions, functions)
 

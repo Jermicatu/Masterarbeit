@@ -92,7 +92,7 @@ class myMixBNN:
 
         # I am using matched component KL as an approximation
 
-        my_ELBO = self.forwardPass_vectorized(m_q, s_q, w_q, x_data, y_data)
+        my_ELBO = self.forwardPass(m_q, s_q, w_q, x_data, y_data)
 
         flat_mq = torch.cat([ml.flatten() for ml in m_q])
         flat_sq = torch.cat([sl.flatten() for sl in s_q])
@@ -101,13 +101,14 @@ class myMixBNN:
         flat_sp = torch.cat([sl.flatten() for sl in s_p])
         flat_wp = torch.cat([wl.flatten() for wl in w_p])
 
-        kl = 0
+        kl = 1
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
-            kl += wq * (0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5) # + torch.log((wq + 1e-8)/(wp + 1e-8)))
+            kl += wp * (torch.log(wp) - 0.5 * torch.log(2 * math.pi * sp) - ((mq-mp)**2 + sq) / (2 * sp)) 
+            kl += wq * (torch.log(wq) - 0.5 * torch.log(2 * math.pi * sq) - 0.5)
         print("likelyhood: ", my_ELBO)
         print("KL: ", kl)
-        return my_ELBO # - kl_weight*kl
+        return my_ELBO + kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
@@ -165,9 +166,9 @@ class myMixBNN:
         return output_mean, output_var
 
 def test1():
-    dimensions = [1, 2, 1, 1]
+    dimensions = [1, 20, 1, 1]
     functions = [torch.tanh, torch.tanh, lambda x: x]
-    network = myMixBNN(dimensions, functions, mix_size=2)
+    network = myMixBNN(dimensions, functions, mix_size=1)
 
 
     x_data = torch.linspace(-3, 3, steps=20).unsqueeze(-1)
