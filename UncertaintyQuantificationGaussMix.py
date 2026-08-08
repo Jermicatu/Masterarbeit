@@ -2,7 +2,6 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import GaussMixClass
 import LayerMomentApprox
 from logger_config import logger
 import time
