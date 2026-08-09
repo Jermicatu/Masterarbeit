@@ -1,10 +1,7 @@
 import torch
 import math
 import matplotlib.pyplot as plt
-import numpy as np
-import LayerMomentApprox
-from logger_config import logger
-import time
+from . import LayerMomentApprox
 from torch.func import vmap
 
 def id(x):

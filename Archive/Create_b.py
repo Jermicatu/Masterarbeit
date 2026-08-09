@@ -2,9 +2,9 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import GaussMixClass
+import src.GaussMixClass as GaussMixClass
 from scipy.integrate import quad, quad_vec
-from logger_config import logger
+from src.logger_config import logger
 import os
 os.environ["LOGURU_LEVEL"] = "WARNING"
 from torchquad import Simpson

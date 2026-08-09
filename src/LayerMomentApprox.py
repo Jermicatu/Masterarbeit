@@ -1,10 +1,5 @@
 import torch
 import math
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy.special import roots_hermite
-from logger_config import logger
-import math
 
 def activation_input_approx_vectorized(z_moments, m, s, mix_w):
     w_moments = MixToMoments(m, s, mix_w)

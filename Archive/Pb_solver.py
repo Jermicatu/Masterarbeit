@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Create_P
 import Create_b
-import GaussMixClass
+import src.GaussMixClass as GaussMixClass
 import GaussSpliter
-from logger_config import logger
+from src.logger_config import logger
 
 def solve_Pb(mix_start, mix_product, gamma, noise):
     b_vec = Create_b.b_torchquad(mix_start, mix_product, gamma, noise)

@@ -2,8 +2,8 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import GaussMixClass
-from logger_config import logger
+import src.GaussMixClass as GaussMixClass
+from src.logger_config import logger
 
 # new functions for UncertaintyQuantificationGaussMix
 

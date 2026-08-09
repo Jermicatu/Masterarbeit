@@ -3,9 +3,9 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import roots_hermite
-import GaussMixClass
+import src.GaussMixClass as GaussMixClass
 import MomentsMakeMix
-from logger_config import logger
+from src.logger_config import logger
 import math
 
 # new functions for UncertaintyQuantificationGaussMix

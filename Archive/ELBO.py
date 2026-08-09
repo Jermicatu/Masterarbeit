@@ -2,8 +2,8 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import GaussMixClass
-from logger_config import logger
+import src.GaussMixClass as GaussMixClass
+from src.logger_config import logger
 
 def ELBO(mix_1: GaussMixClass.GaussMix, mix_2: GaussMixClass.GaussMix) -> float:
     """

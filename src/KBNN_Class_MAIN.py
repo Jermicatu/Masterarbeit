@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import random
-import GaussMixClass
+from . import GaussMixClass
 
 from torch import tanh as tanh
 from torch import cos as cos

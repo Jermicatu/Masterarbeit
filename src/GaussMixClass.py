@@ -2,7 +2,7 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-from logger_config import logger
+from .logger_config import logger
 
 DEFAULT_MAX_MIX = 100
 
