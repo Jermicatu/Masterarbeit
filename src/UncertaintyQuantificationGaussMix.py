@@ -115,7 +115,7 @@ class myMixBNN:
 
         for epoch in range(epochs):
 
-            kl_weight = min(1.0, epoch / 800.0)
+            kl_weight = min(1.0, epoch / epochs)
 
             optimizer.zero_grad()
             s_q = [torch.exp(ls) for ls in log_s_q]

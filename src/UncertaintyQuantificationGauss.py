@@ -94,7 +94,7 @@ class PaperBNN:
         dimensions = self.dimensions
         functions = self.functions
         L = len(dimensions) - 1
-
+        
         m_p = self.m
         s_p = self.s
 

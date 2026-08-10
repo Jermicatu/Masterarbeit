@@ -460,21 +460,23 @@ def GaussMixUncertaintyApproximation(network: Network_Class, x: torch.tensor) ->
   print(z_l[i].s)
   return z_l[0]
 
-scaling = 50
-x_1 = -1
-x_2 = 1
-y_1 = 0
-y_2 = 1.5
-data_var = 0.1
-net_var = 1
-test_f = f3
 
-torch.manual_seed(500098)
-data = generateData(test_f, x_1, x_2, 800, data_var, scaling)
-network = Network_Class(1, [100, 1], [relu, id], net_var)
+if __name__ == "__main__":
+  scaling = 50
+  x_1 = -1
+  x_2 = 1
+  y_1 = 0
+  y_2 = 1.5
+  data_var = 0.1
+  net_var = 1
+  test_f = f3
+
+  torch.manual_seed(500098)
+  data = generateData(test_f, x_1, x_2, 800, data_var, scaling)
+  network = Network_Class(1, [100, 1], [relu, id], net_var)
 
 
-simpleTestNetwork(network, data, y_1, y_2, scaling)
-# sample(network, data, 100000, 0) # broken for scaling neq 1
+  simpleTestNetwork(network, data, y_1, y_2, scaling)
+  # sample(network, data, 100000, 0) # broken for scaling neq 1
 
-# how to scale data to be in a good margin?
+  # how to scale data to be in a good margin?
