@@ -5,6 +5,7 @@ import time
 import numpy as np
 import random
 from . import GaussMixClass
+from .experiments_utils import id
 
 from torch import tanh as tanh
 from torch import cos as cos
@@ -25,9 +26,6 @@ def f3(x):
 def f4(x):
   return x**3
 
-def id(x):
-  return x
-
 def generateData(f, a, b, points, var, scaling):
   """
   Input:  @param f: function f(x) TODO multiple dimensions: for now one dimensional 
@@ -38,7 +36,7 @@ def generateData(f, a, b, points, var, scaling):
   Output: @output x: the tensor of the x values used to sample y
           @output y: the y values we get through f(x) + pertubation
   """
-  x = torch.linspace(a, b, points, dtype=torch.float64)
+  x = torch.linspace(a, b, points, dtype=torch.float32)
   y = (f(x) + torch.normal(torch.zeros(x.shape), torch.ones(x.shape)) * var)*scaling
   return x, y
 
@@ -56,10 +54,10 @@ class Network_Class:
 
     # +1 for the bias
 
-    network[0] = [torch.normal(0, 1, size = (input_size+1, dimensions[0]), dtype=torch.float64), starting_variance * torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float64)), functions[0]]
+    network[0] = [torch.normal(0, 1, size = (input_size+1, dimensions[0]), dtype=torch.float32), starting_variance * torch.diag_embed(torch.ones(dimensions[0], input_size+1, dtype=torch.float32)), functions[0]]
 
     for i in range(1,len(dimensions)):
-      network[i] = [torch.normal(0, 1, size = (dimensions[i-1]+1, dimensions[i]), dtype=torch.float64), starting_variance * torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float64)), functions[i]]
+      network[i] = [torch.normal(0, 1, size = (dimensions[i-1]+1, dimensions[i]), dtype=torch.float32), starting_variance * torch.diag_embed(torch.ones(dimensions[i],dimensions[i-1]+1, dtype=torch.float32)), functions[i]]
       
 
     self.input_size = input_size
@@ -97,7 +95,7 @@ class Network_Class:
 
     if len(x.size()) == 0:
       x = x.unsqueeze(0)
-    x = x.to(torch.float64)
+    x = x.to(torch.float32)
 
     # iterate through each layer 
     for i in range(0, len(dimensions)):
@@ -115,7 +113,7 @@ class Network_Class:
 
     if len(x.size()) == 0:
       x = x.unsqueeze(0)
-    x = x.to(torch.float64)
+    x = x.to(torch.float32)
 
     # iterate through each layer
     for i in range(0, len(dimensions)):
@@ -137,7 +135,7 @@ class Network_Class:
     forwardPassData = [None] * len(dimensions)
 
     m_z_old = x
-    s_z_old = torch.zeros(input_size+1, input_size+1, dtype=torch.float64)
+    s_z_old = torch.zeros(input_size+1, input_size+1, dtype=torch.float32)
 
     # iterate through each layer
     for i in range(0, len(dimensions)):
@@ -149,29 +147,29 @@ class Network_Class:
       C = torch.einsum('nii->n', C)
       
       m_a = torch.flatten(torch.matmul(m_z_old, m_w))
-      s_a = torch.maximum(A + B + C, torch.ones(dimensions[i], dtype=torch.float64) * self.noise)
+      s_a = torch.maximum(A + B + C, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
 
-      if f == sig:
+      if f == torch.sigmoid:
         l = math.sqrt(math.pi/8)
         t = torch.sqrt(1 + (l**2) * s_a).pow_(-1)
         m_z_new = sig(m_a * t)
-        s_z_new = torch.maximum(m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t), torch.ones(dimensions[i], dtype=torch.float64) * self.noise)
+        s_z_new = torch.maximum(m_z_new * (torch.ones(dimensions[i]) - m_z_new) * (torch.ones(dimensions[i]) - t), torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
       if f == id:
         m_z_new = m_a
         s_z_new = s_a + self.noise
-      if f == relu:
+      if f == torch.relu:
         alpha = m_a / torch.sqrt(s_a)
         p_a = torch.sqrt(s_a)/math.sqrt(2 * math.pi) * exp(-0.5 * alpha**2)
         probit = 0.5 * (1 + erf(alpha / math.sqrt(2)))
         m_z_new = m_a * probit + p_a
-        s_z_new = torch.maximum((torch.pow(m_a, 2) + s_a) * probit + m_a * p_a - m_z_new ** 2 + torch.ones(dimensions[i], dtype=torch.float64) * self.noise, torch.ones(dimensions[i], dtype=torch.float64) * self.noise)
+        s_z_new = torch.maximum((torch.pow(m_a, 2) + s_a) * probit + m_a * p_a - m_z_new ** 2 + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
 
       # simple cubature approx
       #m_z_new, s_z_new = self.cubature_approx(f, m_a, s_a)
-      #s_z_new = torch.maximum(s_z_new + torch.ones(dimensions[i], dtype=torch.float64) * self.noise, torch.ones(dimensions[i], dtype=torch.float64) * self.noise)
-
-      m_z_old = torch.cat((m_z_new, torch.tensor([1], dtype=torch.float64)), 0)
-      s_z_old = torch.block_diag(torch.diag(s_z_new), torch.tensor([[0]], dtype=torch.float64))
+      #s_z_new = torch.maximum(s_z_new + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
+      
+      m_z_old = torch.cat((m_z_new, torch.tensor([1], dtype=torch.float32)), 0)
+      s_z_old = torch.block_diag(torch.diag(s_z_new), torch.tensor([[0]], dtype=torch.float32))
 
       # print([m_a, s_a, m_z_new, s_z_new])
       forwardPassData[i] = [m_a, s_a, m_z_new, s_z_new]
@@ -195,12 +193,12 @@ class Network_Class:
       x = x_data[j].unsqueeze(0)
       y = y_data[j].unsqueeze(0)
 
-      x_ = torch.cat((x, torch.ones(1, dtype=torch.float64)), 0)
+      x_ = torch.cat((x, torch.ones(1, dtype=torch.float32)), 0)
       # forward pass
       forwardPassData = self.forwardPass(x_)
 
       m_z_plus = y
-      s_z_plus = torch.zeros(y.size(0), dtype=torch.float64)
+      s_z_plus = torch.zeros(y.size(0), dtype=torch.float32)
 
       # iterate through each layer
       for i in range(len(dimensions)-1, -1, -1):
@@ -209,7 +207,7 @@ class Network_Class:
         # values differt in the very first layer
         if i == 0:
           m_z_minus_prev = x
-          s_z_minus_prev = torch.zeros(x.size(0), dtype=torch.float64)
+          s_z_minus_prev = torch.zeros(x.size(0), dtype=torch.float32)
           w_count = self.input_size + 1
         else:
           m_z_minus_prev = forwardPassData[i-1][2]
@@ -228,18 +226,18 @@ class Network_Class:
         assert s_z_minus.shape == torch.Size([perc_count]), f"Shape mismatch in s_z_minus"
         m_w, s_w, f = network[i]
         
-        if f == sig:
+        if f == torch.sigmoid:
           l = math.sqrt(math.pi/8)
           t = torch.sqrt(1 + (l**2) * s_a_minus)
           cov_a_z = ((l * s_a_minus) / t) * (1 / math.sqrt(2 * math.pi)) * torch.exp(-((l * m_a_minus / t)**2) / 2)
         elif f == id:
           cov_a_z = m_a_minus ** 2 + s_a_minus - m_z_minus * m_a_minus
-        elif f == relu:
+        elif f == torch.relu:
           alpha = m_a_minus / torch.sqrt(s_a_minus)
           p_a = torch.sqrt(s_a_minus)/math.sqrt(2 * math.pi) * exp(-0.5 * alpha**2)
           probit = 0.5 * (1 + erf(alpha / math.sqrt(2)))
-          cov_a_z = torch.maximum((torch.pow(m_a_minus, 2) + s_a_minus) * probit + m_a_minus * p_a - m_a_minus * m_z_minus, torch.ones(dimensions[i], dtype=torch.float64) * 1e-12)
-       
+          cov_a_z = torch.maximum((torch.pow(m_a_minus, 2) + s_a_minus) * probit + m_a_minus * p_a - m_a_minus * m_z_minus, torch.ones(dimensions[i], dtype=torch.float32) * 1e-12)
+        
         assert cov_a_z.shape == torch.Size([perc_count]), f"Shape mismatch in cov_a_z"
 
         k = cov_a_z / s_z_minus
@@ -247,8 +245,8 @@ class Network_Class:
         da = k * (m_z_plus.flatten() - m_z_minus)
         Da = (k **2) * (s_z_plus - s_z_minus)
         
-        C_wza_top = s_w @ torch.cat((m_z_minus_prev, torch.tensor([1], dtype=torch.float64)), 0)
-        C_wza_bot = torch.cat((s_z_minus_prev, torch.tensor([0], dtype=torch.float64)), 0).unsqueeze(-1) * m_w
+        C_wza_top = s_w @ torch.cat((m_z_minus_prev, torch.tensor([1], dtype=torch.float32)), 0)
+        C_wza_bot = torch.cat((s_z_minus_prev, torch.tensor([0], dtype=torch.float32)), 0).unsqueeze(-1) * m_w
                 
         Ca_inv = 1 / s_a_minus
         
@@ -258,14 +256,14 @@ class Network_Class:
         self.network[i][0] = self.network[i][0] + torch.t(L_up * torch.outer(da, torch.ones((w_count))))
         m_z_plus = m_z_minus_prev + L_low[:-1] @ da
         
-        E = L_up * torch.outer(Da, torch.ones((w_count), dtype=torch.float64))
-        F = L_up.unsqueeze(-1) @ torch.ones((1, w_count), dtype=torch.float64)
+        E = L_up * torch.outer(Da, torch.ones((w_count), dtype=torch.float32))
+        F = L_up.unsqueeze(-1) @ torch.ones((1, w_count), dtype=torch.float32)
         
         self.network[i][1] = self.network[i][1] + E.unsqueeze(1).repeat(1, w_count, 1) * F
         
         G = L_low ** 2 * Da.unsqueeze(0).repeat(w_count, 1)
         
-        s_z_plus = s_z_minus_prev + G[:-1] @ torch.ones((perc_count), dtype=torch.float64)
+        s_z_plus = s_z_minus_prev + G[:-1] @ torch.ones((perc_count), dtype=torch.float32)
 
         
         
@@ -281,11 +279,11 @@ def sample(network, data, times, place):
                   For example: in a dataset with 800 points 0 is the first point and 799 would be the last.
   """
   x = data[0][place]
-  m_a_minus, s_a_minus, m_z_minus, s_z_minus = network.forwardPass(torch.cat((x.unsqueeze(0), torch.ones(1, dtype=torch.float64)), 0))[len(network.dimensions) - 1]
+  m_a_minus, s_a_minus, m_z_minus, s_z_minus = network.forwardPass(torch.cat((x.unsqueeze(0), torch.ones(1, dtype=torch.float32)), 0))[len(network.dimensions) - 1]
   samples = [None] * times
   for i in range(0, times):
     samples[i] = network.staticOutput(x).item()
-  print(network.forwardPass(torch.cat((x.unsqueeze(0), torch.ones(1, dtype=torch.float64)), 0))[len(network.dimensions) - 1])
+  print(network.forwardPass(torch.cat((x.unsqueeze(0), torch.ones(1, dtype=torch.float32)), 0))[len(network.dimensions) - 1])
   print("mean: ", np.mean(samples))
   print("var: ", np.var(samples))
   print("my mean: ", m_z_minus)
@@ -317,9 +315,9 @@ def simpleTestNetwork(network, data, y_1, y_2, scaling):
   plt.plot(data[0], data[1]/scaling, '.', label = "data")
 
   # Save data to plot the prediction of the BNN
-  perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
-  perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
-  perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+  perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float32)
+  perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float32)
+  perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float32)
 
   for i in range(0, data[0].size(0)):
     perceptron_Plot_static[i] = network.staticOutput(data[0][i])
@@ -364,9 +362,9 @@ def testNetwork(network, data):
   n_plots = 2
   color = iter(plt.cm.rainbow(np.linspace(0, 1, n_plots)))
 
-  perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
-  perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
-  perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+  perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float32)
+  perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float32)
+  perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float32)
   mse = 0
   for i in range(0, data[0].size(0)):
     perceptron_Plot_static[i] = network.staticOutput(data[0][i])
@@ -381,9 +379,9 @@ def testNetwork(network, data):
 
   for k in range(1, n_plots):
     network.train(data)
-    perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+    perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float32)
+    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float32)
+    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float32)
     mse = 0
     for i in range(0, data[0].size(0)):
       perceptron_Plot_static[i] = network.staticOutput(data[0][i])
@@ -473,7 +471,7 @@ if __name__ == "__main__":
 
   torch.manual_seed(500098)
   data = generateData(test_f, x_1, x_2, 800, data_var, scaling)
-  network = Network_Class(1, [100, 1], [relu, id], net_var)
+  network = Network_Class(1, [100, 1], [torch.relu, id], net_var)
 
 
   simpleTestNetwork(network, data, y_1, y_2, scaling)

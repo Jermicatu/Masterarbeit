@@ -41,13 +41,10 @@ def test_KBNN_classic():
     # Plot data
     plt.plot(data[0], data[1]/scaling, '.', label = "data", color="r")
 
-    print(data[0].size())
-    print(data[1].size())
-
     # Save data to plot the prediction of the BNN
-    perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+    perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float32)
+    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float32)
+    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float32)
 
     for i in range(0, data[0].size(0)):
         perceptron_Plot_static[i] = network.staticOutput(data[0][i])
@@ -120,26 +117,25 @@ def test_VI_mix_classic():
     plt.grid(True)
     plt.show()
 
-def save_data():
-    # this function has to be rewritten for each new dataset we want to make
-    x_data = torch.linspace(-3, 3, steps=20)
-    y_data = torch.cos(x_data)
+def generate_data(name, f, variance, start, end, steps):
+    x_data = torch.linspace(start, end, steps=steps)
+    y_data = f(x_data) + variance * torch.randn(steps)
     torch.save({
         "x_data": x_data,
         "y_data": y_data
-    }, "Cos_data_20.pt")
+    }, f"Test_data/{name}.pt")
 
 def train_KBNN_json(name):
-    # TODO thids function and the next
-
-    with open(f"Tests/{name}.json", "r") as f:
+    with open(f"Tests/KBNN/{name}.json", "r") as f:
         config = json.load(f)
 
+    scaling = config["scaling"]
     dimensions = config["dimensions"]
     functions = [utils.FUNCTIONS[func] for func in config["functions"]]
     seed = config["seed"]
+    torch.manual_seed(seed)
 
-    data = torch.load(config["data_file"])
+    data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"]
     y_data = data["y_data"]
 
@@ -147,38 +143,58 @@ def train_KBNN_json(name):
 
     network = KBNN.Network_Class(dimensions[0], dimensions[1:], functions, net_var)
 
-    network.train(x_data, y_data)
+    network.train([x_data, y_data*scaling])
+
+    torch.save({"network": network.network,}, f"Tests/KBNN/{name}.pt")
     
 def plot_KBNN_json(name):
 
-    # Plot data
-    plt.plot(data[0], data[1]/scaling, '.', label = "data", color="r")
+    with open(f"Tests/KBNN/{name}.json", "r") as f:
+        config = json.load(f)
 
-    print(data[0].size())
-    print(data[1].size())
+    data = torch.load(f"Test_data/{config["data_file"]}")
+    x_data = data["x_data"]
+    y_data = data["y_data"]
+
+    scaling = config["scaling"]
+
+    dimensions = config["dimensions"]
+    functions = [utils.FUNCTIONS[func] for func in config["functions"]]
+    net_var = 1
+
+    KBNN_network = KBNN.Network_Class(dimensions[0], dimensions[1:], functions, net_var)
+
+    network_data = torch.load(
+        f"Tests/KBNN/{name}.pt",
+        weights_only=False)
+
+    KBNN_network.network = network_data["network"]
+
+    # Plot data
+    plt.plot(x_data, y_data/scaling, '.', label = "data", color="r")
 
     # Save data to plot the prediction of the BNN
-    perceptron_Plot_static = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot = torch.zeros(data[0].size(0), dtype=torch.float64)
-    perceptron_Plot_var = torch.zeros(data[0].size(0), dtype=torch.float64)
+    perceptron_Plot_static = torch.zeros(x_data.size(0), dtype=torch.float32)
+    perceptron_Plot = torch.zeros(x_data.size(0), dtype=torch.float32)
+    perceptron_Plot_var = torch.zeros(x_data.size(0), dtype=torch.float32)
 
-    for i in range(0, data[0].size(0)):
-        perceptron_Plot_static[i] = network.staticOutput(data[0][i])
-        perceptron_Plot[i] = network.meanOutput(data[0][i])
-        perceptron_Plot_var[i] = 2 * torch.sqrt(network.forwardPass(torch.cat((data[0][i].unsqueeze(0), torch.ones(1)), 0))[len(network.dimensions)-1][3])
+    for i in range(0, x_data.size(0)):
+        perceptron_Plot_static[i] = KBNN_network.staticOutput(x_data[i])
+        perceptron_Plot[i] = KBNN_network.meanOutput(x_data[i])
+        perceptron_Plot_var[i] = 2 * torch.sqrt(KBNN_network.forwardPass(torch.cat((x_data[i].unsqueeze(0), torch.ones(1)), 0))[len(KBNN_network.dimensions)-1][3])
 
     # PLot the prediction of the BNN
-    plt.plot(data[0], perceptron_Plot/scaling, label="KBNN prediction", color="b")
-    plt.fill_between(data[0], (perceptron_Plot-perceptron_Plot_var)/scaling, (perceptron_Plot + perceptron_Plot_var)/scaling, alpha=0.2, color="b")
+    plt.plot(x_data, perceptron_Plot/scaling, label="KBNN prediction", color="b")
+    plt.fill_between(x_data, (perceptron_Plot-perceptron_Plot_var)/scaling, (perceptron_Plot + perceptron_Plot_var)/scaling, alpha=0.2, color="b")
 
     # Limit plot and show it
     plt.legend(loc='best')
-    plt.ylim(y_1, y_2)
+    # plt.ylim(y_1, y_2)
     plt.show()
 
 def train_VI_json(name):
 
-    with open(f"Tests/{name}.json", "r") as f:
+    with open(f"Tests/VI/{name}.json", "r") as f:
         config = json.load(f)
 
     dimensions = config["dimensions"]
@@ -187,7 +203,7 @@ def train_VI_json(name):
     epochs = config["epochs"]
     # learning_rate = config["learning_rate"]
 
-    data = torch.load(config["data_file"])
+    data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"]
     y_data = data["y_data"]
 
@@ -196,18 +212,19 @@ def train_VI_json(name):
     network = VI.PaperBNN(dimensions, functions)
 
     network.train(x_data, y_data, epochs)
+
     torch.save({
         "m": network.m,
         "s": network.s,
         "dimensions": network.dimensions,
-    }, f"Tests/{name}.pt")
+    }, f"Tests/VI/{name}.pt")
 
 def plot_VI_json(name):
 
-    with open(f"Tests/{name}.json", "r") as f:
+    with open(f"Tests/VI/{name}.json", "r") as f:
         config = json.load(f)
 
-    network_data = torch.load(f"Tests/{name}.pt")
+    network_data = torch.load(f"Tests/VI/{name}.pt")
 
 
     network = VI.PaperBNN(
@@ -218,7 +235,7 @@ def plot_VI_json(name):
     network.m = network_data["m"]
     network.s = network_data["s"]
 
-    test_data = torch.load(config["data_file"])
+    test_data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = test_data["x_data"]
     y_data = test_data["y_data"]
 
@@ -242,7 +259,7 @@ def plot_VI_json(name):
 
 def train_VI_mix_json(name):
 
-    with open(f"Tests/{name}.json", "r") as f:
+    with open(f"Tests/VI_mix/{name}.json", "r") as f:
         config = json.load(f)
 
     dimensions = config["dimensions"]
@@ -252,7 +269,7 @@ def train_VI_mix_json(name):
     epochs = config["epochs"]
     # learning_rate = config["learning_rate"]
 
-    data = torch.load(config["data_file"])
+    data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"].unsqueeze(-1)
     y_data = data["y_data"].unsqueeze(-1)
 
@@ -265,14 +282,14 @@ def train_VI_mix_json(name):
         "m": network.m,
         "s": network.s,
         "dimensions": network.dimensions,
-    }, f"Tests/{name}.pt")
+    }, f"Tests/VI_mix/{name}.pt")
 
 def plot_VI_mix_json(name):
 
-    with open(f"Tests/{name}.json", "r") as f:
+    with open(f"Tests/VI_mix/{name}.json", "r") as f:
         config = json.load(f)
 
-    network_data = torch.load(f"Tests/{name}.pt")
+    network_data = torch.load(f"Tests/VI_mix/{name}.pt")
 
 
     network = VI_mix.myMixBNN(
@@ -284,7 +301,7 @@ def plot_VI_mix_json(name):
     network.m = network_data["m"]
     network.s = network_data["s"]
 
-    test_data = torch.load(config["data_file"])
+    test_data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = test_data["x_data"].unsqueeze(-1)
     y_data = test_data["y_data"].unsqueeze(-1)
 
@@ -306,7 +323,14 @@ def plot_VI_mix_json(name):
     plt.grid(True)
     plt.show()
 
+def batch_trin_VI_mix(name, batches):
+    # TODO figure this out
+    for i in range(batches):
+        train_VI_mix_json(name)
+
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    test_KBNN_classic()
+    generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
+    #train_VI_mix_json("Trial")
+    #plot_VI_mix_json("Trial")

@@ -97,7 +97,7 @@ class myMixBNN:
         flat_sp = torch.cat([sl.flatten() for sl in s_p])
         flat_wp = torch.cat([wl.flatten() for wl in w_p])
 
-        kl = 1
+        kl = 0
 
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
             kl += wp * (torch.log(wp) - 0.5 * torch.log(2 * math.pi * sp) - ((mq-mp)**2 + sq) / (2 * sp)) 

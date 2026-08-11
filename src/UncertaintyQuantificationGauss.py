@@ -16,7 +16,6 @@ class PaperBNN:
 
         L = len(dimensions) - 1
         self.m = [torch.randn(dimensions[l + 1], dimensions[l] + 1) * 0.1 for l in range(L)]
-        print(self.m)
         self.s = [starting_variance * torch.ones(dimensions[l + 1], dimensions[l] + 1) for l in range(L)]
         
     def forwardPass(self, m_q, s_q, x_data, y_data):
@@ -64,8 +63,7 @@ class PaperBNN:
 
         for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
             kl += 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
-        print("likelyhood: ", my_ELBO)
-        print("KL: ", kl)
+        
         return my_ELBO - kl_weight * kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
@@ -76,7 +74,7 @@ class PaperBNN:
 
         for epoch in range(epochs):
 
-            kl_weight = min(1.0, epoch / 400.0)
+            kl_weight = min(1.0, epoch / epochs)
 
             optimizer.zero_grad()
             s_q = [torch.exp(ls) for ls in log_s_q]
@@ -84,8 +82,8 @@ class PaperBNN:
             loss.backward()
             optimizer.step()
 
-            if epoch % 50 == 0:
-                print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
+            #if epoch % 50 == 0:
+            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
@@ -128,8 +126,6 @@ def test1():
 
     network.train(x_data, y_data)
     y_m, y_s = network.predict(x_data)
-    print(y_m)
-    print(y_s)
 
     y_pred = y_m.squeeze(0)
     y_s = y_s.squeeze(0)

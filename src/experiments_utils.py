@@ -5,5 +5,6 @@ def id(x):
 
 FUNCTIONS = {
     "tanh": torch.tanh,
+    "sig": torch.sigmoid,
     "id": id,
 }
