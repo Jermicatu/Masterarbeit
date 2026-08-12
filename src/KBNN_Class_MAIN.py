@@ -5,7 +5,7 @@ import time
 import numpy as np
 import random
 from . import GaussMixClass
-from .experiments_utils import id
+from .utils import id
 
 from torch import tanh as tanh
 from torch import cos as cos
@@ -14,31 +14,24 @@ from torch import relu as relu
 from torch import erf as erf
 from torch import exp as exp
 
-def f1(x):
-  return 0.45 * (cos(x+1) + 1)
-
-def f2(x):
-  return 0.5 * (sig(x+1) - sig(x-1) + sig(x))
-
-def f3(x):
-  return cos(x)
-
-def f4(x):
-  return x**3
-
-def generateData(f, a, b, points, var, scaling):
+def cubature_approx(f, mean, var):
   """
-  Input:  @param f: function f(x) TODO multiple dimensions: for now one dimensional 
-          @param a: creates the intervall with b 
-          @param b: creates the intervall with a
-          @param points: is the amount of equidistant points on the intervall [a, b]
-          @param var: the variance of the added noise
-  Output: @output x: the tensor of the x values used to sample y
-          @output y: the y values we get through f(x) + pertubation
+  This code is for approximating E(f(a)) and var(f(a))
+  Input:  @param f: function f(x)
+          @param: var: one dimensional torch vector of form [sigma_1^2, ..., sigma_d^2]
+          @param: mean: one dimensional torch vector of form [mu_1, ..., mu_d]
+  Output: @output mean_sol: approximation E(f(a))
+          @output var_sol: approximation E(f^2(a)) - E(f(a))^2
   """
-  x = torch.linspace(a, b, points, dtype=torch.float32)
-  y = (f(x) + torch.normal(torch.zeros(x.shape), torch.ones(x.shape)) * var)*scaling
-  return x, y
+  assert var.size() == mean.size(), f"Shape mismatch between var and mean"
+
+  mean_sol = f(torch.sqrt(var) + mean) + f(-torch.sqrt(var) + mean)
+  mean_sol = mean_sol/math.sqrt(math.pi)
+
+  var_sol = f(torch.sqrt(var) + mean)**2 + f(-torch.sqrt(var) + mean)**2
+  var_sol = var_sol/math.sqrt(math.pi) - mean_sol**2
+
+  return mean_sol, var_sol
 
 class Network_Class:
   def __init__(self, input_size, dimensions, functions, starting_variance = 1):
@@ -66,24 +59,8 @@ class Network_Class:
     self.noise = 0.01
     self.network = network
 
-  def cubature_approx(self, f, mean, var):
-    """
-    This code is for approximating E(f(a)) and var(f(a))
-    Input:  @param f: function f(x)
-            @param: var: one dimensional torch vector of form [sigma_1^2, ..., sigma_d^2]
-            @param: mean: one dimensional torch vector of form [mu_1, ..., mu_d]
-    Output: @output mean_sol: approximation E(f(a))
-            @output var_sol: approximation E(f^2(a)) - E(f(a))^2
-    """
-    assert var.size() == mean.size(), f"Shape mismatch between var and mean"
-
-    mean_sol = f(torch.sqrt(var) + mean) + f(-torch.sqrt(var) + mean)
-    mean_sol = mean_sol/math.sqrt(math.pi)
-
-    var_sol = f(torch.sqrt(var) + mean)**2 + f(-torch.sqrt(var) + mean)**2
-    var_sol = var_sol/math.sqrt(math.pi) - mean_sol**2
-
-    return mean_sol, var_sol
+	# def getLayer(self, layer_index):
+	# 	return self.network[layer_index]
 
   def meanOutput(self, x):
     """
@@ -165,7 +142,7 @@ class Network_Class:
         s_z_new = torch.maximum((torch.pow(m_a, 2) + s_a) * probit + m_a * p_a - m_z_new ** 2 + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
 
       # simple cubature approx
-      #m_z_new, s_z_new = self.cubature_approx(f, m_a, s_a)
+      #m_z_new, s_z_new = cubature_approx(f, m_a, s_a)
       #s_z_new = torch.maximum(s_z_new + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
       
       m_z_old = torch.cat((m_z_new, torch.tensor([1], dtype=torch.float32)), 0)
@@ -460,6 +437,38 @@ def GaussMixUncertaintyApproximation(network: Network_Class, x: torch.tensor) ->
 
 
 if __name__ == "__main__":
+
+  def f1(x):
+    return 0.45 * (cos(x+1) + 1)
+
+  def f2(x):
+    return 0.5 * (sig(x+1) - sig(x-1) + sig(x))
+
+  def f3(x):
+    return cos(x)
+
+  def f4(x):
+    return x**3
+
+  # interval_bounds = (a,b)
+  # *interval_bounds
+
+  # N_points, N_equi_points
+  # var_noise
+  def generateData(f, a, b, points, var, scaling):
+    """
+    Input:  @param f: function f(x) TODO multiple dimensions: for now one dimensional 
+            @param a: creates the intervall with b 
+            @param b: creates the intervall with a
+            @param points: is the amount of equidistant points on the intervall [a, b]
+            @param var: the variance of the added noise
+    Output: @output x: the tensor of the x values used to sample y
+            @output y: the y values we get through f(x) + pertubation
+    """
+    x = torch.linspace(a, b, points, dtype=torch.float32)
+    y = (f(x) + torch.normal(torch.zeros(x.shape), torch.ones(x.shape)) * var)*scaling
+    return x, y
+  
   scaling = 50
   x_1 = -1
   x_2 = 1

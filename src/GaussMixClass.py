@@ -405,9 +405,8 @@ class GaussMix:
         gaussians = torch.log(coef * exponent) * ((coef * exponent) ** gamma)
 
         return (w_ * gaussians).sum(dim=1)
-    
-def id(x):
-    return x
+
+from utils import id  
 
 def test_1():
     w1 = torch.tensor([0.3, 0.4, 0.3])
