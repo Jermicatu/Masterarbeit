@@ -1,0 +1,8 @@
+{
+    "dimensions": [1, 20, 1, 1],
+    "functions": ["tanh", "tanh", "id"],
+    "seed": 1,
+    "name": "Trial",
+    "data_file": "Cos_data_20.pt",
+    "epochs": 500
+}
