@@ -125,6 +125,7 @@ def generate_data(name, f, variance, start, end, steps):
         "y_data": y_data
     }, f"Test_data/{name}.pt")
 
+# train_KBNN_from_json(filename)
 def train_KBNN_json(name):
     with open(f"Tests/KBNN/{name}.json", "r") as f:
         config = json.load(f)
@@ -332,5 +333,5 @@ def batch_trin_VI_mix(name, batches):
 if __name__ == "__main__":
     print("INITIATE TESTS:")
     generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
-    #train_VI_mix_json("Trial")
-    #plot_VI_mix_json("Trial")
+    train_VI_mix_json("Trial")
+    plot_VI_mix_json("Trial")
