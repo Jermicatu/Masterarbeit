@@ -1,7 +1,7 @@
 import src.KBNN_Class_MAIN as KBNN
 import src.UncertaintyQuantificationGauss as VI
 import src.UncertaintyQuantificationGaussMix as VI_mix
-import Masterarbeit.src.utils as utils
+import src.utils as utils
 import torch
 import matplotlib.pyplot as plt
 import time
