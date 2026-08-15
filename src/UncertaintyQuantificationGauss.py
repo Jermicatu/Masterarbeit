@@ -1,6 +1,5 @@
 import torch
 import math
-import matplotlib.pyplot as plt
 
 def id(x):
     return x
@@ -115,34 +114,3 @@ class PaperBNN:
             y_var[:,i] = s_z_l
 
         return y_mean, y_var
-
-def test1():
-    dimensions = [1, 2, 1, 1]
-    functions = [torch.tanh, torch.tanh, id]
-    network = PaperBNN(dimensions, functions)
-
-    x_data = torch.linspace(-3, 3, steps=50)
-    y_data = torch.cos(x_data)
-
-    network.train(x_data, y_data)
-    y_m, y_s = network.predict(x_data)
-
-    y_pred = y_m.squeeze(0)
-    y_s = y_s.squeeze(0)
-
-    plt.plot(x_data, y_data, 'ro', label="cos(x)")
-    plt.plot(x_data, y_pred, label="Network output")
-    plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
-
-
-    plt.legend()
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
-    # plt.ylim((-1, 1))
-    plt.grid(True)
-    plt.show()
-
-
-if __name__ == "__main__":
-    print("INITIATE TESTS:")
-    test1()
