@@ -2,14 +2,15 @@ import src.KBNN_Class_MAIN as KBNN
 import src.UncertaintyQuantificationGauss as VI
 import src.UncertaintyQuantificationGaussMix as VI_mix
 import src.utils as utils
+from src.utils import id
 import torch
 import matplotlib.pyplot as plt
 import time
 import json
 
-def id(x):
-    return x
 
+
+# TODO this does not work anymore - delete soon tm
 def test_KBNN_classic():
     """
     Input:  @param network: A netork class
@@ -126,7 +127,7 @@ def generate_data(name, f, variance, start, end, steps):
     }, f"Test_data/{name}.pt")
 
 # train_KBNN_from_json(filename)
-def train_KBNN_json(name):
+def train_KBNN_from_json(name):
     with open(f"Tests/KBNN/{name}.json", "r") as f:
         config = json.load(f)
 
@@ -148,7 +149,7 @@ def train_KBNN_json(name):
 
     torch.save({"network": network.network,}, f"Tests/KBNN/{name}.pt")
     
-def plot_KBNN_json(name):
+def plot_KBNN_from_json_pt(name):
 
     with open(f"Tests/KBNN/{name}.json", "r") as f:
         config = json.load(f)
@@ -193,7 +194,7 @@ def plot_KBNN_json(name):
     # plt.ylim(y_1, y_2)
     plt.show()
 
-def train_VI_json(name):
+def train_VI_from_json(name):
 
     with open(f"Tests/VI/{name}.json", "r") as f:
         config = json.load(f)
@@ -220,7 +221,7 @@ def train_VI_json(name):
         "dimensions": network.dimensions,
     }, f"Tests/VI/{name}.pt")
 
-def plot_VI_json(name):
+def plot_VI_from_json_pt(name):
 
     with open(f"Tests/VI/{name}.json", "r") as f:
         config = json.load(f)
@@ -258,7 +259,7 @@ def plot_VI_json(name):
     plt.grid(True)
     plt.show()
 
-def train_VI_mix_json(name):
+def train_VI_mix_from_json(name):
 
     with open(f"Tests/VI_mix/{name}.json", "r") as f:
         config = json.load(f)
@@ -285,7 +286,7 @@ def train_VI_mix_json(name):
         "dimensions": network.dimensions,
     }, f"Tests/VI_mix/{name}.pt")
 
-def plot_VI_mix_json(name):
+def plot_VI_mix_from_json_pt(name):
 
     with open(f"Tests/VI_mix/{name}.json", "r") as f:
         config = json.load(f)
@@ -327,11 +328,11 @@ def plot_VI_mix_json(name):
 def batch_trin_VI_mix(name, batches):
     # TODO figure this out
     for i in range(batches):
-        train_VI_mix_json(name)
+        train_VI_from_json(name)
 
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
-    train_VI_mix_json("Trial")
-    plot_VI_mix_json("Trial")
+    #generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
+    #train_VI_mix_from_json("Trial")
+    plot_VI_mix_from_json_pt("Trial")
