@@ -118,18 +118,32 @@ def test_VI_mix_classic():
     plt.grid(True)
     plt.show()
 
-def generate_data(name, f, variance, start, end, steps):
+def generate_data(filename, f, variance, start, end, steps):
     x_data = torch.linspace(start, end, steps=steps)
     y_data = f(x_data) + variance * torch.randn(steps)
     torch.save({
         "x_data": x_data,
         "y_data": y_data
-    }, f"Test_data/{name}.pt")
+    }, f"Test_data/{filename}.pt")
 
-# train_KBNN_from_json(filename)
-def train_KBNN_from_json(name):
-    with open(f"Tests/KBNN/{name}.json", "r") as f:
+def open_KBNN_json(filename):
+    with open(f"Tests/KBNN/{filename}.json", "r") as f:
         config = json.load(f)
+    return config
+
+def open_VI_json(filename):
+    with open(f"Tests/VI/{filename}.json", "r") as f:
+        config = json.load(f)
+    return config
+
+def open_VI_mix_json(filename):
+    with open(f"Tests/VI_mix/{filename}.json", "r") as f:
+        config = json.load(f)
+    return config
+
+def train_KBNN_from_config_as(config, filename):
+    # config file has the informations for traingin
+    # filname is the name of the final pt file where we save the network
 
     scaling = config["scaling"]
     dimensions = config["dimensions"]
@@ -147,30 +161,21 @@ def train_KBNN_from_json(name):
 
     network.train([x_data, y_data*scaling])
 
-    torch.save({"network": network.network,}, f"Tests/KBNN/{name}.pt")
-    
-def plot_KBNN_from_json_pt(name):
+    # Here we save only the variables relevant for ploting later
+    torch.save({"network": network,
+                "x_data": x_data,
+                "y_data": y_data,
+                "scaling": scaling}, f"Tests/KBNN/{filename}.pt")
 
-    with open(f"Tests/KBNN/{name}.json", "r") as f:
-        config = json.load(f)
-
-    data = torch.load(f"Test_data/{config["data_file"]}")
-    x_data = data["x_data"]
-    y_data = data["y_data"]
-
-    scaling = config["scaling"]
-
-    dimensions = config["dimensions"]
-    functions = [utils.FUNCTIONS[func] for func in config["functions"]]
-    net_var = 1
-
-    KBNN_network = KBNN.Network_Class(dimensions[0], dimensions[1:], functions, net_var)
-
+def plot_KBNN_from_pt(filename):
     network_data = torch.load(
-        f"Tests/KBNN/{name}.pt",
+        f"Tests/KBNN/{filename}.pt",
         weights_only=False)
 
-    KBNN_network.network = network_data["network"]
+    KBNN_network = network_data["network"]
+    x_data = network_data["x_data"]
+    y_data = network_data["y_data"]
+    scaling = network_data["scaling"]
 
     # Plot data
     plt.plot(x_data, y_data/scaling, '.', label = "data", color="r")
@@ -194,10 +199,9 @@ def plot_KBNN_from_json_pt(name):
     # plt.ylim(y_1, y_2)
     plt.show()
 
-def train_VI_from_json(name):
-
-    with open(f"Tests/VI/{name}.json", "r") as f:
-        config = json.load(f)
+def train_VI_from_config_as(config, filename):
+    # config file has the informations for traingin
+    # filname is the name of the final pt file where we save the network
 
     dimensions = config["dimensions"]
     functions = [utils.FUNCTIONS[func] for func in config["functions"]]
@@ -216,32 +220,20 @@ def train_VI_from_json(name):
     network.train(x_data, y_data, epochs)
 
     torch.save({
-        "m": network.m,
-        "s": network.s,
-        "dimensions": network.dimensions,
-    }, f"Tests/VI/{name}.pt")
+        "network": network,
+        "x_data": x_data,
+        "y_data": y_data,
+    }, f"Tests/VI/{filename}.pt")
 
-def plot_VI_from_json_pt(name):
+def plot_VI_from_pt(filename):
 
-    with open(f"Tests/VI/{name}.json", "r") as f:
-        config = json.load(f)
+    network_data = torch.load(f"Tests/VI/{filename}.pt")
 
-    network_data = torch.load(f"Tests/VI/{name}.pt")
+    VI_network = network_data["network"]
+    x_data = network_data["x_data"]
+    y_data = network_data["y_data"]
 
-
-    network = VI.PaperBNN(
-        config["dimensions"],
-        [utils.FUNCTIONS[func] for func in config["functions"]]
-    )
-
-    network.m = network_data["m"]
-    network.s = network_data["s"]
-
-    test_data = torch.load(f"Test_data/{config["data_file"]}")
-    x_data = test_data["x_data"]
-    y_data = test_data["y_data"]
-
-    y_m, y_s = network.predict(x_data)
+    y_m, y_s = VI_network.predict(x_data)
 
     y_pred = y_m.squeeze().detach().numpy()
     y_s = y_s.squeeze().detach().numpy()
@@ -259,17 +251,13 @@ def plot_VI_from_json_pt(name):
     plt.grid(True)
     plt.show()
 
-def train_VI_mix_from_json(name):
-
-    with open(f"Tests/VI_mix/{name}.json", "r") as f:
-        config = json.load(f)
+def train_VI_mix_from_config_as(config, filename):
 
     dimensions = config["dimensions"]
     functions = [utils.FUNCTIONS[func] for func in config["functions"]]
     mix_size = config["mix_size"]
     seed = config["seed"]
     epochs = config["epochs"]
-    # learning_rate = config["learning_rate"]
 
     data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"].unsqueeze(-1)
@@ -280,34 +268,22 @@ def train_VI_mix_from_json(name):
     network = VI_mix.myMixBNN(dimensions, functions, mix_size)
 
     network.train(x_data, y_data, epochs)
+
     torch.save({
-        "m": network.m,
-        "s": network.s,
-        "dimensions": network.dimensions,
-    }, f"Tests/VI_mix/{name}.pt")
+        "network": network,
+        "x_data": x_data,
+        "y_data": y_data,
+    }, f"Tests/VI_mix/{filename}.pt")
 
-def plot_VI_mix_from_json_pt(name):
+def plot_VI_mix_from_pt(filename):
 
-    with open(f"Tests/VI_mix/{name}.json", "r") as f:
-        config = json.load(f)
+    network_data = torch.load(f"Tests/VI_mix/{filename}.pt")
 
-    network_data = torch.load(f"Tests/VI_mix/{name}.pt")
+    VI_mix_network = network_data["network"]
+    x_data = network_data["x_data"]
+    y_data = network_data["y_data"]
 
-
-    network = VI_mix.myMixBNN(
-        config["dimensions"],
-        [utils.FUNCTIONS[func] for func in config["functions"]],
-        config["mix_size"]
-    )
-
-    network.m = network_data["m"]
-    network.s = network_data["s"]
-
-    test_data = torch.load(f"Test_data/{config["data_file"]}")
-    x_data = test_data["x_data"].unsqueeze(-1)
-    y_data = test_data["y_data"].unsqueeze(-1)
-
-    y_m, y_s = network.predict(x_data)
+    y_m, y_s = VI_mix_network.predict(x_data)
 
     y_pred = y_m.squeeze().detach().numpy()
     y_s = y_s.squeeze().detach().numpy()
@@ -325,14 +301,16 @@ def plot_VI_mix_from_json_pt(name):
     plt.grid(True)
     plt.show()
 
-def batch_trin_VI_mix(name, batches):
+def batch_trin_VI_mix(base_jason):
     # TODO figure this out
-    for i in range(batches):
-        train_VI_from_json(name)
+    config = open_VI_mix_json(base_jason).copy()
 
+    for seed in range(1, 4):
+        config["seed"] = seed
+        train_VI_mix_from_config_as(config, f"{base_jason}_seed_{seed}")
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
     #generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
     #train_VI_mix_from_json("Trial")
-    plot_VI_mix_from_json_pt("Trial")
+    batch_trin_VI_mix("Trial")
