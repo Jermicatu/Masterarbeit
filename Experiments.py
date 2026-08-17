@@ -301,16 +301,35 @@ def plot_VI_mix_from_pt(filename):
     plt.grid(True)
     plt.show()
 
-def batch_trin_VI_mix(base_jason):
-    # TODO figure this out
-    config = open_VI_mix_json(base_jason).copy()
+def batch_train_VI_mix(base_json, n_seed):
+    config = open_VI_mix_json(base_json).copy()
 
-    for seed in range(1, 4):
+    for seed in range(1, n_seed+1):
         config["seed"] = seed
-        train_VI_mix_from_config_as(config, f"{base_jason}_seed_{seed}")
+        train_VI_mix_from_config_as(config, f"{base_json}_seed_{seed}")
+
+def review_batch_VI_mix(base_json, n_seed, error_function):
+    for seed in range(1, n_seed+1):
+        network_data = torch.load(f"Tests/VI_mix/{base_json}_seed_{seed}.pt")
+
+        VI_mix_network = network_data["network"]
+        x_data = network_data["x_data"]
+        y_data = network_data["y_data"]
+
+        f = utils.ERROR_FUNCTIONS[error_function]
+
+        y_m, y_s = VI_mix_network.predict(x_data)
+
+        y_pred = y_m.squeeze().detach().numpy()
+        y_s = y_s.squeeze().detach().numpy()
+        x_data = x_data.squeeze().detach().numpy()
+        y_data = y_data.detach().numpy()
+
+        f(y_data, y_pred)
+
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
     #generate_data("Cos_data_20_var_1", torch.cos, 1, -3, 3, 20)
     #train_VI_mix_from_json("Trial")
-    batch_trin_VI_mix("Trial")
+    batch_train_VI_mix("Trial", 3)

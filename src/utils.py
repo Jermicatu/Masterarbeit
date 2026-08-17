@@ -21,6 +21,12 @@ def NLL(y_data, y_mu_approx, y_s_approx):
 
     return torch.mean((y_data - y_mu_approx)**2 / (2*y_s_approx) + 0.5 * torch.log(2*torch.pi*y_s_approx))
 
+ERROR_FUNCTIONS = {
+    "RMSE": RMSE,
+    "MAE": MAE,
+    "NLL": NLL,
+}
+
 FUNCTIONS = {
     "tanh": torch.tanh,
     "sig": torch.sigmoid,
