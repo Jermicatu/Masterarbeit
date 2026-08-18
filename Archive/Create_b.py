@@ -2,7 +2,7 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import src.GaussMixClass as GaussMixClass
+import Masterarbeit.Archive.GaussMixClass as GaussMixClass
 from scipy.integrate import quad, quad_vec
 from src.logger_config import logger
 import os

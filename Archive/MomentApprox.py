@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import roots_hermite
-import src.GaussMixClass as GaussMixClass
+import Masterarbeit.Archive.GaussMixClass as GaussMixClass
 import MomentsMakeMix
 from src.logger_config import logger
 import math

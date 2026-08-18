@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Create_P
 import Create_b
-import src.GaussMixClass as GaussMixClass
+import Masterarbeit.Archive.GaussMixClass as GaussMixClass
 import GaussSpliter
 from src.logger_config import logger
 

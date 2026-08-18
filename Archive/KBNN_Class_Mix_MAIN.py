@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import random
-import src.GaussMixClass as GaussMixClass
+import Masterarbeit.Archive.GaussMixClass as GaussMixClass
 import src.LayerMomentApprox as LayerMomentApprox
 from Pb_solver import mix_density_mult_approx
 

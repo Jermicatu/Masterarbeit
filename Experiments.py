@@ -379,5 +379,5 @@ def review_batch_VI_mix(base_json, n_seed):
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    batch_train_VI_mix("Trial", 3)
+    #batch_train_VI_mix("Trial", 3)
     review_batch_VI_mix("Trial", 3)

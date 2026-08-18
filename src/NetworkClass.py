@@ -1,10 +1,5 @@
 import torch
 import math
-import matplotlib.pyplot as plt
-import time
-import numpy as np
-import random
-from . import GaussMixClass
 from .utils import id
 
 from torch import tanh as tanh
