@@ -5,7 +5,7 @@ def id(x):
     return x
 
 class PaperBNN:
-    def __init__(self, dimensions, functions, starting_variance = 10, data_variance = 1):
+    def __init__(self, dimensions, functions, starting_variance = 5, data_variance = 1):
         self.dimensions = dimensions
         self.functions = functions
         self.data_variance = data_variance
@@ -67,7 +67,8 @@ class PaperBNN:
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
-        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
+        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]
+        # initial variance is a tenth of that of s_p
 
         optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
 
@@ -81,8 +82,8 @@ class PaperBNN:
             loss.backward()
             optimizer.step()
 
-            #if epoch % 50 == 0:
-            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
+            if epoch % 50 == 0:
+                print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
@@ -100,7 +101,7 @@ class PaperBNN:
 
         for i in range(len(x_data)):
             m_z_l = x_data[i:i+1]
-            s_z_l = torch.zeros(1)
+            s_z_l = torch.zeros_like(m_z_l)
             for l in range(L):
                 f = functions[l]
                 m_a_l = torch.matmul(m_p[l][:,1:], m_z_l) + m_p[l][:,0]

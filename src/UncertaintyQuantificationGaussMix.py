@@ -1,6 +1,5 @@
 import torch
 import math
-import matplotlib.pyplot as plt
 from . import LayerMomentApprox
 from torch.func import vmap
 
@@ -150,7 +149,7 @@ class myMixBNN:
             x = x_data[i] # TODO: adjust example
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
-            w_z_start = torch.ones_like(m_z_start)
+            w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
                 # either calculate m, s and w or just 3*mix_size - 1 moments

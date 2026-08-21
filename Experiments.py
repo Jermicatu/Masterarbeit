@@ -64,14 +64,17 @@ def test_KBNN_classic():
     return None
 
 def test_VI_classic():
-    dimensions = [1, 2, 1, 1]
+    torch.manual_seed(1)
+    dimensions = [1, 20, 1, 1]
     functions = [torch.tanh, torch.tanh, id]
     network = VI.PaperBNN(dimensions, functions)
 
     x_data = torch.linspace(-3, 3, steps=50)
     y_data = torch.cos(x_data)
 
-    network.train(x_data, y_data)
+    print(network.m)
+    network.train(x_data, y_data, epochs=500)
+    print(network.m)
     y_m, y_s = network.predict(x_data)
     
     y_pred = y_m.squeeze(0)
@@ -316,6 +319,126 @@ def plot_VI_mix_from_pt(filename):
     plt.grid(True)
     plt.show()
 
+def batch_train_KBNN(base_json, n_seed):
+    config = open_KBNN_json(base_json).copy()
+
+    for seed in range(1, n_seed+1):
+        config["seed"] = seed
+        train_KBNN_from_config_as(config, f"{base_json}_seed_{seed}")
+
+def review_batch_KBNN(base_json, n_seed):
+    RMSE_values = torch.zeros(n_seed)
+    MAE_values = torch.zeros(n_seed)
+    NLL_values = torch.zeros(n_seed)
+    predict_time = torch.zeros(n_seed)
+    train_time = torch.zeros(n_seed)
+
+    for seed in range(1, n_seed+1):
+        network_data = torch.load(
+            f"Tests/KBNN/{base_json}_seed_{seed}.pt",
+            weights_only=False)
+
+        KBNN_network = network_data["network"]
+        x_data = network_data["x_data"]
+        y_data = network_data["y_data"]
+
+        start = time.time()
+        y_m, y_s = KBNN_network.predict(x_data)
+        end = time.time()
+
+        y_pred = y_m.squeeze().detach()
+        y_s = y_s.squeeze().detach()
+        x_data = x_data.squeeze().detach()
+        y_data = y_data.squeeze().detach()
+
+        RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
+        MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
+        NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
+        predict_time[seed - 1] = end - start
+        train_time[seed - 1] = network_data["train_time"]
+
+    RMSE_mean = torch.mean(RMSE_values)
+    print(f"RMSE mean is {RMSE_mean}.")
+    MAE_mean = torch.mean(MAE_values)
+    print(f"MAE mean is {MAE_mean}.")
+    NLL_mean = torch.mean(NLL_values)
+    print(f"NLL mean is {NLL_mean}.")
+    train_mean = torch.mean(train_time)
+    print(f"Training time mean is {train_mean}.")
+    predict_mean = torch.mean(predict_time)
+    print(f"Prediction time mean is {predict_mean}.")
+
+    RMSE_var = torch.var(RMSE_values)
+    print(f"RMSE variance is {RMSE_var}.")
+    MAE_var = torch.var(MAE_values)
+    print(f"MAE variance is {MAE_var}.")
+    NLL_var = torch.var(NLL_values)
+    print(f"NLL variance is {NLL_var}.")
+    train_var = torch.var(train_time)
+    print(f"Training time variance is {train_var}.")
+    predict_var = torch.var(predict_time)
+    print(f"Prediction time variance is {predict_var}.")
+
+def batch_train_VI(base_json, n_seed):
+    config = open_VI_json(base_json).copy()
+
+    for seed in range(1, n_seed+1):
+        config["seed"] = seed
+        train_VI_from_config_as(config, f"{base_json}_seed_{seed}")
+
+def review_batch_VI(base_json, n_seed):
+    RMSE_values = torch.zeros(n_seed)
+    MAE_values = torch.zeros(n_seed)
+    NLL_values = torch.zeros(n_seed)
+    predict_time = torch.zeros(n_seed)
+    train_time = torch.zeros(n_seed)
+
+    for seed in range(1, n_seed+1):
+        network_data = torch.load(
+            f"Tests/VI/{base_json}_seed_{seed}.pt",
+            weights_only=False)
+
+        VI_network = network_data["network"]
+        x_data = network_data["x_data"]
+        y_data = network_data["y_data"]
+
+        start = time.time()
+        y_m, y_s = VI_network.predict(x_data)
+        end = time.time()
+
+        y_pred = y_m.squeeze().detach()
+        y_s = y_s.squeeze().detach()
+        x_data = x_data.squeeze().detach()
+        y_data = y_data.squeeze().detach()
+
+        RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
+        MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
+        NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
+        predict_time[seed - 1] = end - start
+        train_time[seed - 1] = network_data["train_time"]
+
+    RMSE_mean = torch.mean(RMSE_values)
+    print(f"RMSE mean is {RMSE_mean}.")
+    MAE_mean = torch.mean(MAE_values)
+    print(f"MAE mean is {MAE_mean}.")
+    NLL_mean = torch.mean(NLL_values)
+    print(f"NLL mean is {NLL_mean}.")
+    train_mean = torch.mean(train_time)
+    print(f"Training time mean is {train_mean}.")
+    predict_mean = torch.mean(predict_time)
+    print(f"Prediction time mean is {predict_mean}.")
+
+    RMSE_var = torch.var(RMSE_values)
+    print(f"RMSE variance is {RMSE_var}.")
+    MAE_var = torch.var(MAE_values)
+    print(f"MAE variance is {MAE_var}.")
+    NLL_var = torch.var(NLL_values)
+    print(f"NLL variance is {NLL_var}.")
+    train_var = torch.var(train_time)
+    print(f"Training time variance is {train_var}.")
+    predict_var = torch.var(predict_time)
+    print(f"Prediction time variance is {predict_var}.")
+
 def batch_train_VI_mix(base_json, n_seed):
     config = open_VI_mix_json(base_json).copy()
 
@@ -380,4 +503,5 @@ def review_batch_VI_mix(base_json, n_seed):
 if __name__ == "__main__":
     print("INITIATE TESTS:")
     #batch_train_VI_mix("Trial", 3)
-    review_batch_VI_mix("Trial", 3)
+    #review_batch_VI_mix("Trial", 3)
+    test_VI_classic()
