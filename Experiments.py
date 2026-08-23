@@ -64,12 +64,12 @@ def test_KBNN_classic():
     return None
 
 def test_VI_classic():
-    torch.manual_seed(1)
+    torch.manual_seed(2)
     dimensions = [1, 20, 1, 1]
     functions = [torch.tanh, torch.tanh, id]
     network = VI.PaperBNN(dimensions, functions)
 
-    x_data = torch.linspace(-3, 3, steps=50)
+    x_data = torch.linspace(-3, 3, steps=20)
     y_data = torch.cos(x_data)
 
     print(network.m)
@@ -93,9 +93,10 @@ def test_VI_classic():
     plt.show()
 
 def test_VI_mix_classic():
-    dimensions = [1, 4, 1, 1]
+    torch.manual_seed(2)
+    dimensions = [1, 20, 1, 1]
     functions = [torch.tanh, torch.tanh, lambda x: x]
-    network = VI_mix.myMixBNN(dimensions, functions, mix_size=2)
+    network = VI_mix.myMixBNN(dimensions, functions, mix_size=1)
 
 
     x_data = torch.linspace(-3, 3, steps=20).unsqueeze(-1)
@@ -112,6 +113,8 @@ def test_VI_mix_classic():
     plt.plot(x_data, y_data, 'ro', label="cos(x)")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
+
+    print(network.w)
 
 
     plt.legend()

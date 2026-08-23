@@ -61,9 +61,10 @@ class PaperBNN:
         kl = 0
 
         for mq,sq,mp,sp in zip(flat_mq, flat_sq, flat_mp, flat_sp):
-            kl += 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
-        
-        return my_ELBO - kl_weight * kl
+            # kl += 0.5 * torch.log(sp) + ((mq-mp)**2 + sq) / (2 * sp) - 0.5 * torch.log(sq) - 0.5
+            kl += (- 0.5 * torch.log(2 * math.pi * sp) - ((mq-mp)**2 + sq) / (2 * sp)) 
+            kl += (- 0.5 * torch.log(2 * math.pi * sq) - 0.5)
+        return my_ELBO + kl_weight * kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
