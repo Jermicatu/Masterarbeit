@@ -72,9 +72,8 @@ def test_VI_classic():
     x_data = torch.linspace(-3, 3, steps=20)
     y_data = torch.cos(x_data)
 
-    print(network.m)
     network.train(x_data, y_data, epochs=500)
-    print(network.m)
+
     y_m, y_s = network.predict(x_data)
     
     y_pred = y_m.squeeze(0)
@@ -346,7 +345,12 @@ def review_batch_KBNN(base_json, n_seed):
         y_data = network_data["y_data"]
 
         start = time.time()
-        y_m, y_s = KBNN_network.predict(x_data)
+        y_m = torch.zeros(x_data.size(0), dtype=torch.float32)
+        y_s = torch.zeros(x_data.size(0), dtype=torch.float32)
+
+        for i in range(0, x_data.size(0)):
+            y_m[i] = KBNN_network.meanOutput(x_data[i])
+            y_s[i] = 2 * torch.sqrt(KBNN_network.forwardPass(torch.cat((x_data[i].unsqueeze(0), torch.ones(1)), 0))[len(KBNN_network.dimensions)-1][3])
         end = time.time()
 
         y_pred = y_m.squeeze().detach()
@@ -505,6 +509,6 @@ def review_batch_VI_mix(base_json, n_seed):
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    #batch_train_VI_mix("Trial", 3)
-    #review_batch_VI_mix("Trial", 3)
-    test_VI_classic()
+    #batch_train_KBNN("Trial", 3)
+    review_batch_KBNN("Trial", 3)
+    #test_VI_classic()
