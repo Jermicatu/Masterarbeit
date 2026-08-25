@@ -31,4 +31,5 @@ FUNCTIONS = {
     "tanh": torch.tanh,
     "sig": torch.sigmoid,
     "id": id,
+    "relu": torch.relu
 }

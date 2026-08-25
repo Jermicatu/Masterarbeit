@@ -79,7 +79,7 @@ def test_VI_classic():
     y_pred = y_m.squeeze(0)
     y_s = y_s.squeeze(0)
 
-    plt.plot(x_data, y_data, 'ro', label="cos(x)")
+    plt.plot(x_data, y_data, 'ro', label="data")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
@@ -109,7 +109,7 @@ def test_VI_mix_classic():
     x_data = x_data.squeeze().detach().numpy()
     y_data = y_data.detach().numpy()
 
-    plt.plot(x_data, y_data, 'ro', label="cos(x)")
+    plt.plot(x_data, y_data, 'ro', label="data")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
@@ -188,7 +188,7 @@ def plot_KBNN_from_pt(filename):
     scaling = network_data["scaling"]
 
     # Plot data
-    plt.plot(x_data, y_data/scaling, '.', label = "data", color="r")
+    plt.plot(x_data, y_data, '.', label = "data", color="r")
 
     # Save data to plot the prediction of the BNN
     perceptron_Plot_static = torch.zeros(x_data.size(0), dtype=torch.float32)
@@ -206,7 +206,8 @@ def plot_KBNN_from_pt(filename):
 
     # Limit plot and show it
     plt.legend(loc='best')
-    # plt.ylim(y_1, y_2)
+    plt.ylim((-1.1, 1.1))
+    plt.grid(True)
     plt.show()
 
 def train_VI_from_config_as(config, filename):
@@ -255,14 +256,14 @@ def plot_VI_from_pt(filename):
     x_data = x_data.squeeze().detach().numpy()
     y_data = y_data.detach().numpy()
 
-    plt.plot(x_data, y_data, 'ro', label="cos(x)")
+    plt.plot(x_data, y_data, 'ro', label="data")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
     plt.legend()
     plt.xlabel("x")
     plt.ylabel("f(x)")
-    # plt.ylim((-1, 1))
+    plt.ylim((-1.1, 1.1))
     plt.grid(True)
     plt.show()
 
@@ -310,14 +311,14 @@ def plot_VI_mix_from_pt(filename):
     x_data = x_data.squeeze().detach().numpy()
     y_data = y_data.detach().numpy()
 
-    plt.plot(x_data, y_data, 'ro', label="cos(x)")
+    plt.plot(x_data, y_data, 'ro', label="data")
     plt.plot(x_data, y_pred, label="Network output")
     plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
     plt.legend()
     plt.xlabel("x")
     plt.ylabel("f(x)")
-    # plt.ylim((-1, 1))
+    plt.ylim((-1.1, 1.1))
     plt.grid(True)
     plt.show()
 
@@ -509,6 +510,12 @@ def review_batch_VI_mix(base_json, n_seed):
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    #batch_train_KBNN("Trial", 3)
+    generate_data("Cos_data_800", torch.cos, 0, -3, 3, 800)
+    batch_train_KBNN("Trial", 3)
     review_batch_KBNN("Trial", 3)
-    #test_VI_classic()
+
+    plot_KBNN_from_pt("Trial_seed_1")
+    plot_KBNN_from_pt("Trial_seed_2")
+    plot_KBNN_from_pt("Trial_seed_3")
+    #plot_VI_from_pt("Trial_seed_1")
+    #plot_VI_mix_from_pt("Trial_seed_1")
