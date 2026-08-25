@@ -510,12 +510,19 @@ def review_batch_VI_mix(base_json, n_seed):
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    generate_data("Cos_data_800", torch.cos, 0, -3, 3, 800)
-    batch_train_KBNN("Trial", 3)
-    review_batch_KBNN("Trial", 3)
+    #generate_data("Cos_data_800", torch.cos, 0, -3, 3, 800)
+    #batch_train_KBNN("Trial", 3)
+    #review_batch_KBNN("Trial", 3)
 
-    plot_KBNN_from_pt("Trial_seed_1")
-    plot_KBNN_from_pt("Trial_seed_2")
-    plot_KBNN_from_pt("Trial_seed_3")
-    #plot_VI_from_pt("Trial_seed_1")
-    #plot_VI_mix_from_pt("Trial_seed_1")
+    #plot_KBNN_from_pt("Trial_seed_1")
+    #plot_KBNN_from_pt("Trial_seed_2")
+    #plot_KBNN_from_pt("Trial_seed_3")
+    plot_VI_from_pt("Trial_seed_1")
+    plot_VI_mix_from_pt("Trial_seed_1")
+
+    # Meetking questions: Hyper-parameter-optimization (layer dim, seed, variance)
+    #                     are these metrics ok?
+    #                     other more complex functions?
+    #                     maybe short showing of the new chapter
+    #                     What do I need for a smooth finish?
+    #                     (Wie ist die Abgabe)
