@@ -65,7 +65,7 @@ def test_KBNN_classic():
 
 def test_VI_classic():
     torch.manual_seed(2)
-    dimensions = [1, 20, 1, 1]
+    dimensions = [1, 10, 1, 1]
     functions = [torch.tanh, torch.tanh, id]
     network = VI.PaperBNN(dimensions, functions)
 
@@ -510,12 +510,14 @@ def review_batch_VI_mix(base_json, n_seed):
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    #generate_data("Cos_data_800", torch.cos, 0, -3, 3, 800)
-    #batch_train_KBNN("Trial", 3)
-    #review_batch_VI_mix("Trial", 3)
+    #generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
+    #batch_train_VI("Trial_60", 3)
+    review_batch_VI("Trial_60", 3)
+
+    #test_VI_classic()
 
     #plot_KBNN_from_pt("Trial_seed_1")
-    plot_KBNN_from_pt("Trial_seed_2")
+    #plot_KBNN_from_pt("Trial_seed_2")
     #plot_KBNN_from_pt("Trial_seed_3")
-    #plot_VI_from_pt("Trial_seed_1")
+    plot_VI_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_seed_1")

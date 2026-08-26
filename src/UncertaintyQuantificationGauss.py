@@ -68,7 +68,7 @@ class PaperBNN:
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
-        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]
+        log_s_q = [torch.log(s.clone().detach()).requires_grad_(True) for s in self.s]
         # initial variance is a tenth of that of s_p
 
         optimizer = torch.optim.Adam(m_q + log_s_q, lr=lr)
