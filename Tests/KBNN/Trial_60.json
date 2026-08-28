@@ -1,6 +1,6 @@
 {
-    "dimensions": [1, 100, 1, 1],
-    "functions": ["relu", "relu", "id"],
+    "dimensions": [1, 10, 1],
+    "functions": ["relu", "id"],
     "seed": 1,
     "name": "Trial",
     "data_file": "Cos_data_60.pt",

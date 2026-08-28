@@ -61,8 +61,6 @@ def test_KBNN_classic():
     plt.ylim(y_1, y_2)
     plt.show()
 
-    return None
-
 def test_VI_classic():
     torch.manual_seed(2)
     dimensions = [1, 10, 1, 1]
@@ -124,6 +122,16 @@ def test_VI_mix_classic():
     plt.show()
 
 def generate_data(filename, f, variance, start, end, steps):
+    """Saves a dataset in the specified range
+
+    Args:
+        filename (string): Name of the resulting .pt file
+        f (function): any function that takes a torch tensor as input and outputs a torch tensor
+        variance (float): variance of the data noise, a variance of 0 leads to perfect data
+        start (float): start of the inteval
+        end (float): end of the interval
+        steps (int): number of points in the resulting dataset
+    """
     x_data = torch.linspace(start, end, steps=steps)
     y_data = f(x_data) + variance * torch.randn(steps)
     torch.save({
@@ -132,22 +140,46 @@ def generate_data(filename, f, variance, start, end, steps):
     }, f"Test_data/{filename}.pt")
 
 def open_KBNN_json(filename):
+    """opens the named json in the KBNN folder and returns the configuration
+
+    Args:
+        filename (string): name of the json file we want to open in the KBNN folder
+
+    Returns:
+        dict: containing all variables needed to initialize a KBNN
+    """
     with open(f"Tests/KBNN/{filename}.json", "r") as f:
         config = json.load(f)
     return config
 
 def open_VI_json(filename):
+    """opens the named json in the VI folder and returns the configuration
+
+    Args:
+        filename (string): name of the json file we want to open in the VI folder
+
+    Returns:
+        dict: containing all variables needed to initialize a VI BNN
+    """
     with open(f"Tests/VI/{filename}.json", "r") as f:
         config = json.load(f)
     return config
 
 def open_VI_mix_json(filename):
+    """opens the named json in the VI_mix folder and returns the configuration
+
+    Args:
+        filename (string): name of the json file we want to open in the VI_mix folder
+
+    Returns:
+        dict: containing all variables needed to initialize a VI mix BNN
+    """
     with open(f"Tests/VI_mix/{filename}.json", "r") as f:
         config = json.load(f)
     return config
 
 def train_KBNN_from_config_as(config, filename):
-    # config file has the informations for traingin
+    # config file has the informations for training
     # filname is the name of the final pt file where we save the network
 
     scaling = config["scaling"]
@@ -507,17 +539,71 @@ def review_batch_VI_mix(base_json, n_seed):
     predict_var = torch.var(predict_time)
     print(f"Prediction time variance is {predict_var}.")
 
+def test_KBNN_cos():
+    """
+    Input:  @param network: A netork class
+            @param data: The data to train the network with in form of [x_data, y_data]
+    The code used for testing. used to not be a function but I just but it here for simplicity
+    """
+
+    torch.manual_seed(1)
+
+    scaling = 50
+    y_1 = -1.1
+    y_2 = 1.1
+    net_var = 1
+
+    data = torch.load("Test_data/Cos_data_60.pt")
+    x_data = data["x_data"]
+    y_data = data["y_data"]
+
+    network = KBNN.Network_Class(1, [10, 1], [KBNN.relu, KBNN.id], net_var)
+
+    # Test the speed of the BNN algorithm
+    start = time.time()    
+    network.train([x_data, y_data*scaling])
+    end = time.time()
+    length = end - start
+    print("It took", length, "seconds!")
+
+    # Plot data
+    plt.plot(x_data, y_data, '.', label = "data", color="r")
+
+    # Save data to plot the prediction of the BNN
+    perceptron_Plot_static = torch.zeros(x_data.size(0), dtype=torch.float32)
+    perceptron_Plot = torch.zeros(x_data.size(0), dtype=torch.float32)
+    perceptron_Plot_var = torch.zeros(x_data.size(0), dtype=torch.float32)
+
+    for i in range(0, x_data.size(0)):
+        perceptron_Plot_static[i] = network.staticOutput(x_data[i])
+        perceptron_Plot[i] = network.meanOutput(x_data[i])
+        perceptron_Plot_var[i] = 2 * torch.sqrt(network.forwardPass(torch.cat((x_data[i].unsqueeze(0), torch.ones(1)), 0))[len(network.dimensions)-1][3])
+
+    # PLot the prediction of the BNN
+    plt.plot(x_data, perceptron_Plot/scaling, label="KBNN prediction", color="b")
+    plt.fill_between(x_data, (perceptron_Plot-perceptron_Plot_var)/scaling, (perceptron_Plot + perceptron_Plot_var)/scaling, alpha=0.2, color="b")
+
+    # Limit plot and show it
+    plt.legend(loc='best')
+    plt.ylim(y_1, y_2)
+    plt.show()
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    #generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
-    #batch_train_VI("Trial_60", 3)
+    generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
+    batch_train_VI("Trial_60", 3)
     review_batch_VI("Trial_60", 3)
+    batch_train_KBNN("Trial_60", 3)
+    review_batch_KBNN("Trial_60", 3)
+    batch_train_VI_mix("Trial_60", 3)
+    review_batch_VI_mix("Trial_60", 3)
 
     #test_VI_classic()
 
     #plot_KBNN_from_pt("Trial_seed_1")
     #plot_KBNN_from_pt("Trial_seed_2")
     #plot_KBNN_from_pt("Trial_seed_3")
-    plot_VI_from_pt("Trial_60_seed_1")
+    #plot_VI_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_seed_1")
+
+    #test_KBNN_cos()
