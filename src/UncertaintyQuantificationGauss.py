@@ -83,8 +83,8 @@ class PaperBNN:
             loss.backward()
             optimizer.step()
 
-            if epoch % 50 == 0:
-                print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
+            #if epoch % 50 == 0:
+            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]

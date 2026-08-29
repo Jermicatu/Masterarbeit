@@ -362,6 +362,7 @@ def batch_train_KBNN(base_json, n_seed):
     config = open_KBNN_json(base_json).copy()
 
     for seed in range(1, n_seed+1):
+        print("KBNN seed: ", seed)
         config["seed"] = seed
         train_KBNN_from_config_as(config, f"{base_json}_seed_{seed}")
 
@@ -427,6 +428,7 @@ def batch_train_VI(base_json, n_seed):
     config = open_VI_json(base_json).copy()
 
     for seed in range(1, n_seed+1):
+        print("VI seed: ", seed)
         config["seed"] = seed
         train_VI_from_config_as(config, f"{base_json}_seed_{seed}")
 
@@ -487,6 +489,7 @@ def batch_train_VI_mix(base_json, n_seed):
     config = open_VI_mix_json(base_json).copy()
 
     for seed in range(1, n_seed+1):
+        print("VI mix seed: ", seed)
         config["seed"] = seed
         train_VI_mix_from_config_as(config, f"{base_json}_seed_{seed}")
 
@@ -604,7 +607,7 @@ if __name__ == "__main__":
     
     #review_batch_KBNN("Trial_60", 100)
     #review_batch_VI("Trial_60", 100)
-    #review_batch_VI_mix("Trial_60", 1)
+    #review_batch_VI_mix("Trial_60", 100)
 
 
     #plot_VI_from_pt("Trial_60_seed_1")

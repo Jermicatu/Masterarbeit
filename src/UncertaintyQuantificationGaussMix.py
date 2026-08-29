@@ -34,7 +34,7 @@ class myMixBNN:
 
         def singlePass(x, y, m_q, s_q, w_q):
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
-            print(m_z_start.size())
+            #print(m_z_start.size())
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
@@ -101,8 +101,8 @@ class myMixBNN:
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
             kl += wp * (torch.log(wp) - 0.5 * torch.log(2 * math.pi * sp) - ((mq-mp)**2 + sq) / (2 * sp)) 
             kl += wq * (torch.log(wq) - 0.5 * torch.log(2 * math.pi * sq) - 0.5)
-        print("likelyhood: ", my_ELBO)
-        print("KL: ", kl)
+        #print("likelyhood: ", my_ELBO)
+        #print("KL: ", kl)
         return my_ELBO + kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
@@ -123,8 +123,8 @@ class myMixBNN:
             loss.backward()
             optimizer.step()
 
-            if epoch % 1 == 0:
-                print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
+            #if epoch % 1 == 0:
+            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
