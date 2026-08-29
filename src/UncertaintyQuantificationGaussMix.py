@@ -107,7 +107,7 @@ class myMixBNN:
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
-        log_s_q = [torch.log(s.clone().detach()).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
+        log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
         logit_w_q = [torch.zeros_like(w).requires_grad_(True) for w in self.w]
 
         optimizer = torch.optim.Adam(m_q + log_s_q + logit_w_q, lr=lr)

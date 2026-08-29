@@ -3,6 +3,7 @@ import src.UncertaintyQuantificationGauss as VI
 import src.UncertaintyQuantificationGaussMix as VI_mix
 import src.utils as utils
 from src.utils import id
+import random
 import torch
 import matplotlib.pyplot as plt
 import time
@@ -186,7 +187,10 @@ def train_KBNN_from_config_as(config, filename):
     dimensions = config["dimensions"]
     functions = [utils.FUNCTIONS[func] for func in config["functions"]]
     seed = config["seed"]
+
+    # As this network uses the random package we also set its seed, the other networks only require the torch seed
     torch.manual_seed(seed)
+    random.seed(seed)
 
     data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"]
@@ -590,20 +594,21 @@ def test_KBNN_cos():
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
-    generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
-    batch_train_VI("Trial_60", 3)
-    review_batch_VI("Trial_60", 3)
-    batch_train_KBNN("Trial_60", 3)
-    review_batch_KBNN("Trial_60", 3)
-    batch_train_VI_mix("Trial_60", 3)
-    review_batch_VI_mix("Trial_60", 3)
 
-    #test_VI_classic()
+    #generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
 
-    #plot_KBNN_from_pt("Trial_seed_1")
-    #plot_KBNN_from_pt("Trial_seed_2")
-    #plot_KBNN_from_pt("Trial_seed_3")
+    
+    batch_train_KBNN("Trial_60", 100)
+    batch_train_VI("Trial_60", 100)
+    batch_train_VI_mix("Trial_60", 100)
+    
+    #review_batch_KBNN("Trial_60", 100)
+    #review_batch_VI("Trial_60", 100)
+    #review_batch_VI_mix("Trial_60", 1)
+
+
     #plot_VI_from_pt("Trial_60_seed_1")
-    #plot_VI_mix_from_pt("Trial_seed_1")
+    #plot_KBNN_from_pt("Trial_60_seed_1")
+    #plot_VI_mix_from_pt("Trial_60_seed_1")
 
     #test_KBNN_cos()
