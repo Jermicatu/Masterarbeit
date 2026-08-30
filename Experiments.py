@@ -601,13 +601,16 @@ if __name__ == "__main__":
     #generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
 
     
-    batch_train_KBNN("Trial_60", 100)
-    batch_train_VI("Trial_60", 100)
-    batch_train_VI_mix("Trial_60", 100)
+    #batch_train_KBNN("Trial_60", 100)
+    #batch_train_VI("Trial_60", 100)
+    #batch_train_VI_mix("Trial_60", 100)
     
-    #review_batch_KBNN("Trial_60", 100)
-    #review_batch_VI("Trial_60", 100)
-    #review_batch_VI_mix("Trial_60", 100)
+    print("KBNN:")
+    review_batch_KBNN("Trial_60", 100)
+    print("VI:")
+    review_batch_VI("Trial_60", 100)
+    print("VI mix:")
+    review_batch_VI_mix("Trial_60", 34)
 
 
     #plot_VI_from_pt("Trial_60_seed_1")
