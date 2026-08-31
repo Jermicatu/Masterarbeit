@@ -122,6 +122,9 @@ def test_VI_mix_classic():
     plt.grid(True)
     plt.show()
 
+def test_function(x):
+    return torch.cos(2*x)
+
 def generate_data(filename, f, variance, start, end, steps):
     """Saves a dataset in the specified range
 
@@ -413,16 +416,16 @@ def review_batch_KBNN(base_json, n_seed):
     predict_mean = torch.mean(predict_time)
     print(f"Prediction time mean is {predict_mean}.")
 
-    RMSE_var = torch.var(RMSE_values)
-    print(f"RMSE variance is {RMSE_var}.")
-    MAE_var = torch.var(MAE_values)
-    print(f"MAE variance is {MAE_var}.")
-    NLL_var = torch.var(NLL_values)
-    print(f"NLL variance is {NLL_var}.")
-    train_var = torch.var(train_time)
-    print(f"Training time variance is {train_var}.")
-    predict_var = torch.var(predict_time)
-    print(f"Prediction time variance is {predict_var}.")
+    RMSE_std = torch.sqrt(torch.var(RMSE_values))
+    print(f"RMSE standard derivation is {RMSE_std}.")
+    MAE_std = torch.sqrt(torch.var(MAE_values))
+    print(f"MAE standard derivation is {MAE_std}.")
+    NLL_std = torch.sqrt(torch.var(NLL_values))
+    print(f"NLL standard derivation is {NLL_std}.")
+    train_std = torch.sqrt(torch.var(train_time))
+    print(f"Training time standard derivation is {train_std}.")
+    predict_std = torch.sqrt(torch.var(predict_time))
+    print(f"Prediction time standard derivation is {predict_std}.")
 
 def batch_train_VI(base_json, n_seed):
     config = open_VI_json(base_json).copy()
@@ -474,16 +477,16 @@ def review_batch_VI(base_json, n_seed):
     predict_mean = torch.mean(predict_time)
     print(f"Prediction time mean is {predict_mean}.")
 
-    RMSE_var = torch.var(RMSE_values)
-    print(f"RMSE variance is {RMSE_var}.")
-    MAE_var = torch.var(MAE_values)
-    print(f"MAE variance is {MAE_var}.")
-    NLL_var = torch.var(NLL_values)
-    print(f"NLL variance is {NLL_var}.")
-    train_var = torch.var(train_time)
-    print(f"Training time variance is {train_var}.")
-    predict_var = torch.var(predict_time)
-    print(f"Prediction time variance is {predict_var}.")
+    RMSE_std = torch.sqrt(torch.var(RMSE_values))
+    print(f"RMSE standard derivation is {RMSE_std}.")
+    MAE_std = torch.sqrt(torch.var(MAE_values))
+    print(f"MAE standard derivation is {MAE_std}.")
+    NLL_std = torch.sqrt(torch.var(NLL_values))
+    print(f"NLL standard derivation is {NLL_std}.")
+    train_std = torch.sqrt(torch.var(train_time))
+    print(f"Training time standard derivation is {train_std}.")
+    predict_std = torch.sqrt(torch.var(predict_time))
+    print(f"Prediction time standard derivation is {predict_std}.")
 
 def batch_train_VI_mix(base_json, n_seed):
     config = open_VI_mix_json(base_json).copy()
@@ -535,82 +538,38 @@ def review_batch_VI_mix(base_json, n_seed):
     predict_mean = torch.mean(predict_time)
     print(f"Prediction time mean is {predict_mean}.")
 
-    RMSE_var = torch.var(RMSE_values)
-    print(f"RMSE variance is {RMSE_var}.")
-    MAE_var = torch.var(MAE_values)
-    print(f"MAE variance is {MAE_var}.")
-    NLL_var = torch.var(NLL_values)
-    print(f"NLL variance is {NLL_var}.")
-    train_var = torch.var(train_time)
-    print(f"Training time variance is {train_var}.")
-    predict_var = torch.var(predict_time)
-    print(f"Prediction time variance is {predict_var}.")
+    RMSE_std = torch.sqrt(torch.var(RMSE_values))
+    print(f"RMSE standard derivation is {RMSE_std}.")
+    MAE_std = torch.sqrt(torch.var(MAE_values))
+    print(f"MAE standard derivation is {MAE_std}.")
+    NLL_std = torch.sqrt(torch.var(NLL_values))
+    print(f"NLL standard derivation is {NLL_std}.")
+    train_std = torch.sqrt(torch.var(train_time))
+    print(f"Training time standard derivation is {train_std}.")
+    predict_std = torch.sqrt(torch.var(predict_time))
+    print(f"Prediction time standard derivation is {predict_std}.")
 
-def test_KBNN_cos():
-    """
-    Input:  @param network: A netork class
-            @param data: The data to train the network with in form of [x_data, y_data]
-    The code used for testing. used to not be a function but I just but it here for simplicity
-    """
-
-    torch.manual_seed(1)
-
-    scaling = 50
-    y_1 = -1.1
-    y_2 = 1.1
-    net_var = 1
-
-    data = torch.load("Test_data/Cos_data_60.pt")
-    x_data = data["x_data"]
-    y_data = data["y_data"]
-
-    network = KBNN.Network_Class(1, [10, 1], [KBNN.relu, KBNN.id], net_var)
-
-    # Test the speed of the BNN algorithm
-    start = time.time()    
-    network.train([x_data, y_data*scaling])
-    end = time.time()
-    length = end - start
-    print("It took", length, "seconds!")
-
-    # Plot data
-    plt.plot(x_data, y_data, '.', label = "data", color="r")
-
-    # Save data to plot the prediction of the BNN
-    perceptron_Plot_static = torch.zeros(x_data.size(0), dtype=torch.float32)
-    perceptron_Plot = torch.zeros(x_data.size(0), dtype=torch.float32)
-    perceptron_Plot_var = torch.zeros(x_data.size(0), dtype=torch.float32)
-
-    for i in range(0, x_data.size(0)):
-        perceptron_Plot_static[i] = network.staticOutput(x_data[i])
-        perceptron_Plot[i] = network.meanOutput(x_data[i])
-        perceptron_Plot_var[i] = 2 * torch.sqrt(network.forwardPass(torch.cat((x_data[i].unsqueeze(0), torch.ones(1)), 0))[len(network.dimensions)-1][3])
-
-    # PLot the prediction of the BNN
-    plt.plot(x_data, perceptron_Plot/scaling, label="KBNN prediction", color="b")
-    plt.fill_between(x_data, (perceptron_Plot-perceptron_Plot_var)/scaling, (perceptron_Plot + perceptron_Plot_var)/scaling, alpha=0.2, color="b")
-
-    # Limit plot and show it
-    plt.legend(loc='best')
-    plt.ylim(y_1, y_2)
-    plt.show()
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
 
-    #generate_data("Cos_data_60", torch.cos, 0, -3, 3, 60)
+    generate_data("Cos_2x_data_60", test_function, 0, -3, 3, 60)
+
+    
+    batch_train_VI("Trial_60_cos_2x", 1)
+    plot_VI_from_pt("Trial_60_cos_2x_seed_1")
 
     
     #batch_train_KBNN("Trial_60", 100)
     #batch_train_VI("Trial_60", 100)
     #batch_train_VI_mix("Trial_60", 100)
     
-    print("KBNN:")
-    review_batch_KBNN("Trial_60", 100)
-    print("VI:")
-    review_batch_VI("Trial_60", 100)
-    print("VI mix:")
-    review_batch_VI_mix("Trial_60", 34)
+    #print("KBNN:")
+    #review_batch_KBNN("Trial_60", 100)
+    #print("VI:")
+    #review_batch_VI("Trial_60", 100)
+    #print("VI mix:")
+    #review_batch_VI_mix("Trial_60", 34)
 
 
     #plot_VI_from_pt("Trial_60_seed_1")
