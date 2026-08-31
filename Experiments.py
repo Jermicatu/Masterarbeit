@@ -491,7 +491,7 @@ def review_batch_VI(base_json, n_seed):
 def batch_train_VI_mix(base_json, n_seed):
     config = open_VI_mix_json(base_json).copy()
 
-    for seed in range(1, n_seed+1):
+    for seed in range(35, n_seed+1):
         print("VI mix seed: ", seed)
         config["seed"] = seed
         train_VI_mix_from_config_as(config, f"{base_json}_seed_{seed}")
@@ -556,20 +556,20 @@ if __name__ == "__main__":
     generate_data("Cos_2x_data_60", test_function, 0, -3, 3, 60)
 
     
-    batch_train_VI("Trial_60_cos_2x", 1)
-    plot_VI_from_pt("Trial_60_cos_2x_seed_1")
+    #batch_train_VI("Trial_60_cos_2x", 1)
+    #plot_VI_from_pt("Trial_60_cos_2x_seed_1")
 
     
     #batch_train_KBNN("Trial_60", 100)
     #batch_train_VI("Trial_60", 100)
-    #batch_train_VI_mix("Trial_60", 100)
+    batch_train_VI_mix("Trial_60", 66)
     
     #print("KBNN:")
     #review_batch_KBNN("Trial_60", 100)
     #print("VI:")
     #review_batch_VI("Trial_60", 100)
     #print("VI mix:")
-    #review_batch_VI_mix("Trial_60", 34)
+    #review_batch_VI_mix("Trial_60", 100)
 
 
     #plot_VI_from_pt("Trial_60_seed_1")
