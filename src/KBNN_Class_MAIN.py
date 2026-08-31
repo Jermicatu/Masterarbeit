@@ -55,9 +55,6 @@ class Network_Class:
     self.noise = 0.01
     self.network = network
 
-	# def getLayer(self, layer_index):
-	# 	return self.network[layer_index]
-
   def meanOutput(self, x):
     """
     Input:  @param x: vector, input for the network
