@@ -409,7 +409,7 @@ def batch_train_seed_KBNN(base_json, n_seed):
 
 def review_batch_seed_KBNN(base_json, n_seed):
     """Takes the n trained KBNN and outputs the mean and standard derivation of multiple important metrics.
-    Args are the same as in batch_train_KBNN.
+    Args are the same as in batch_train_seed_KBNN.
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our KBNN and its training data
@@ -489,7 +489,7 @@ def batch_train_seed_VI(base_json, n_seed):
 
 def review_batch_seed_VI(base_json, n_seed):
     """Takes the n trained VI BNN and outputs the mean and standard derivation of multiple important metrics.
-    Args are the same as in batch_train_VI.
+    Args are the same as in batch_train_seed_VI.
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our VI BNN and its training data
@@ -564,7 +564,7 @@ def batch_train_seed_VI_mix(base_json, n_seed):
 
 def review_batch_seed_VI_mix(base_json, n_seed):
     """Takes the n trained VI mix BNN and outputs the mean and standard derivation of multiple important metrics.
-    Args are the same as in batch_train_VI_mix.
+    Args are the same as in batch_train_seed_VI_mix.
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our VI mix BNN and its training data
@@ -624,7 +624,7 @@ def review_batch_seed_VI_mix(base_json, n_seed):
     print(f"Prediction time standard derivation is {predict_std}.")
 
 def batch_train_epoch_VI_mix(base_json, n_epochs, n_seed):
-    """Trains the same VI mix BNN over n seeds and saves them individually.
+    """Trains the same VI mix BNN over n seeds and n_epochs (with 50 steps between) and saves them individually.
 
     Args:
         base_json (string): The name of the json file whose confifuration we use to define our VI mix BNN and its training data
@@ -636,14 +636,14 @@ def batch_train_epoch_VI_mix(base_json, n_epochs, n_seed):
     for epochs in range(1, n_epochs+1):
         for seed in range(1, n_seed+1):
             print("VI mix seed: ", seed)
-            print("VI mix epochs: ", epochs)
+            print("VI mix epochs: ", epochs*50)
             config["seed"] = seed
             config["epochs"] = epochs*50
             train_VI_mix_from_config_as(config, f"{base_json}_epochs_{epochs*50}_seed_{seed}")
 
 def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
     """Takes the n trained VI mix BNN and outputs the mean and standard derivation of multiple important metrics.
-    Args are the same as in batch_train_VI_mix.
+    Args are the same as in batch_train_epoch_VI_mix.
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our VI mix BNN and its training data
@@ -660,7 +660,7 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
     for epochs in range(1, n_epochs+1):
         for seed in range(1, n_seed+1):
             network_data = torch.load(
-                f"Tests/VI_mix/{base_json}_seed_{seed}.pt",
+                f"Tests/VI_mix/{base_json}_epochs_{epochs*50}_seed_{seed}.pt",
                 weights_only=False)
 
             VI_mix_network = network_data["network"]
@@ -681,6 +681,8 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
             NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
             predict_time[seed - 1] = end - start
             train_time[seed - 1] = network_data["train_time"]
+
+        print(f"Results for {50*epochs} epochs:")
 
         RMSE_mean = torch.mean(RMSE_values)
         print(f"RMSE mean is {RMSE_mean}.")
@@ -715,7 +717,7 @@ if __name__ == "__main__":
     # batch_train_VI_mix("Trial_60_cos_2x", 1)
     # plot_VI_mix_from_pt("Trial_60_cos_2x_seed_1")
 
-    review_batch_VI_seed_mix("Trial_60_cos_2x", 1)
+    #review_batch_seed_VI_mix("Trial_60_cos_2x", 1)
 
     
     #batch_train_seed_KBNN("Trial_60", 100)
@@ -733,3 +735,6 @@ if __name__ == "__main__":
     #plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
+
+    batch_train_epoch_VI_mix("Trial_60", 4, 10)
+    review_batch_epoch_VI_mix("Trial_60", 4, 10)
