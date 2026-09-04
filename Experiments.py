@@ -557,7 +557,7 @@ def batch_train_seed_VI_mix(base_json, n_seed):
     """
     config = open_VI_mix_json(base_json).copy()
 
-    for seed in range(82, n_seed+1):
+    for seed in range(1, n_seed+1):
         print("VI mix seed: ", seed)
         config["seed"] = seed
         train_VI_mix_from_config_as(config, f"{base_json}_seed_{seed}")
@@ -633,7 +633,7 @@ def batch_train_epoch_VI_mix(base_json, n_epochs, n_seed):
     """
     config = open_VI_mix_json(base_json).copy()
 
-    for epochs in range(1, n_epochs+1):
+    for epochs in range(9, n_epochs+1):
         for seed in range(1, n_seed+1):
             print("VI mix seed: ", seed)
             print("VI mix epochs: ", epochs*50)
@@ -722,7 +722,7 @@ if __name__ == "__main__":
     
     #batch_train_seed_KBNN("Trial_60", 100)
     #batch_train_seed_VI("Trial_60", 100)
-    batch_train_seed_VI_mix("Trial_60", 100)
+    #batch_train_seed_VI_mix("Trial_60", 100)
     
     #print("KBNN:")
     #review_batch_seed_KBNN("Trial_60", 100)
