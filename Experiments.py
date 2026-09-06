@@ -482,7 +482,7 @@ def batch_train_seed_VI(base_json, n_seed):
     """
     config = open_VI_json(base_json).copy()
 
-    for seed in range(1, n_seed+1):
+    for seed in range(75, n_seed+1):
         print("VI seed: ", seed)
         config["seed"] = seed
         train_VI_from_config_as(config, f"{base_json}_seed_{seed}")
@@ -730,7 +730,7 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our VI mix BNN and its training data
-        layer_size (int): number of layer size steps we want to train, 1 is skiped
+        n_layer_size (int): number of layer size steps we want to train, 1 is skiped
         n_seed (int): number of seeds we trained
     """
 
@@ -789,6 +789,89 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
         predict_std = torch.sqrt(torch.var(predict_time))
         print(f"Prediction time standard derivation is {predict_std}.")
 
+def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
+    """Trains the same VI mix BNN over n seeds and n_mix_size (with 1 being skiped) and saves them individually.
+
+    Args:
+        base_json (string): The name of the json file whose confifuration we use to define our VI mix BNN and its training data
+        n_mix_size (int): number of mix size steps we want to train, 1 is skiped
+        n_seed (int): number of seeds we trained
+    """
+    config = open_VI_mix_json(base_json).copy()
+
+    for mix_size in range(1, n_mix_size+1):
+        for seed in range(1, n_seed+1):
+            print("VI mix seed: ", seed)
+            print("VI mix layer size: ", mix_size)
+            config["seed"] = seed
+            config["mix_size"] = mix_size
+            train_VI_mix_from_config_as(config, f"{base_json}_mix_size_{mix_size}_seed_{seed}")
+
+def review_batch_layer_size_VI_mix(base_json, n_mix_size, n_seed):
+    """Takes the n trained VI mix BNN and outputs the mean and standard derivation of multiple important metrics.
+    Args are the same as in batch_train_mix_size_VI_mix.
+
+    Args:
+        base_json (string): The name of the json file whose confifuration we used to define our VI mix BNN and its training data
+        n_mix_size (int): number of mix size steps we want to train, 1 is skiped
+        n_seed (int): number of seeds we trained
+    """
+
+    RMSE_values = torch.zeros(n_seed)
+    # MAE_values = torch.zeros(n_seed)
+    NLL_values = torch.zeros(n_seed)
+    predict_time = torch.zeros(n_seed)
+    train_time = torch.zeros(n_seed)
+
+    for mix_size in range(2, n_mix_size+1):
+        for seed in range(1, n_seed+1):
+            network_data = torch.load(
+                f"Tests/VI_mix/{base_json}_mix_size_{mix_size}_seed_{seed}.pt",
+                weights_only=False)
+
+            VI_mix_network = network_data["network"]
+            x_data = network_data["x_data"]
+            y_data = network_data["y_data"]
+
+            start = time.time()
+            y_m, y_s = VI_mix_network.predict(x_data)
+            end = time.time()
+
+            y_pred = y_m.squeeze().detach()
+            y_s = y_s.squeeze().detach()
+            x_data = x_data.squeeze().detach()
+            y_data = y_data.squeeze().detach()
+
+            RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
+            # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
+            NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
+            predict_time[seed - 1] = end - start
+            train_time[seed - 1] = network_data["train_time"]
+
+        print(f"Results for mix size {mix_size}:")
+
+        RMSE_mean = torch.mean(RMSE_values)
+        print(f"RMSE mean is {RMSE_mean}.")
+        # MAE_mean = torch.mean(MAE_values)
+        # print(f"MAE mean is {MAE_mean}.")
+        NLL_mean = torch.mean(NLL_values)
+        print(f"NLL mean is {NLL_mean}.")
+        train_mean = torch.mean(train_time)
+        print(f"Training time mean is {train_mean}.")
+        predict_mean = torch.mean(predict_time)
+        print(f"Prediction time mean is {predict_mean}.")
+
+        RMSE_std = torch.sqrt(torch.var(RMSE_values))
+        print(f"RMSE standard derivation is {RMSE_std}.")
+        # MAE_std = torch.sqrt(torch.var(MAE_values))
+        # print(f"MAE standard derivation is {MAE_std}.")
+        NLL_std = torch.sqrt(torch.var(NLL_values))
+        print(f"NLL standard derivation is {NLL_std}.")
+        train_std = torch.sqrt(torch.var(train_time))
+        print(f"Training time standard derivation is {train_std}.")
+        predict_std = torch.sqrt(torch.var(predict_time))
+        print(f"Prediction time standard derivation is {predict_std}.")
+
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
@@ -803,13 +886,13 @@ if __name__ == "__main__":
 
     
     #batch_train_seed_KBNN("Trial_60", 100)
-    #batch_train_seed_VI("Trial_60", 100)
+    batch_train_seed_VI("Trial_60", 100)    # change back
     #batch_train_seed_VI_mix("Trial_60", 100)
     
     #print("KBNN:")
     #review_batch_seed_KBNN("Trial_60", 100)
     #print("VI:")
-    review_batch_seed_VI("Trial_60", 100)
+    #review_batch_seed_VI("Trial_60", 100)
     #print("VI mix:")
     #review_batch_seed_VI_mix("Trial_60", 100)
 
@@ -818,6 +901,8 @@ if __name__ == "__main__":
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
 
-    batch_train_layer_size_VI_mix("Trial_60", 10, 10)
+    batch_train_layer_size_VI_mix("Trial_60", 10, 10)   # change back
+
+    batch_train_mix_size_VI_mix("Trial_60", 10, 10)
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
