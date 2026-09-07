@@ -34,7 +34,7 @@ class myMixBNN:
 
         def singlePass(x, y, m_q, s_q, w_q):
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
-            #print(m_z_start.size())
+            # print(m_z_start.size())
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)

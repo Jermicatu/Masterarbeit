@@ -482,7 +482,7 @@ def batch_train_seed_VI(base_json, n_seed):
     """
     config = open_VI_json(base_json).copy()
 
-    for seed in range(75, n_seed+1):
+    for seed in range(1, n_seed+1):
         print("VI seed: ", seed)
         config["seed"] = seed
         train_VI_from_config_as(config, f"{base_json}_seed_{seed}")
@@ -716,7 +716,7 @@ def batch_train_layer_size_VI_mix(base_json, n_layer_size, n_seed):
     """
     config = open_VI_mix_json(base_json).copy()
 
-    for layer_size in range(6, n_layer_size+1):
+    for layer_size in range(2, n_layer_size+1):
         for seed in range(1, n_seed+1):
             print("VI mix seed: ", seed)
             print("VI mix layer size: ", layer_size)
@@ -790,11 +790,11 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
         print(f"Prediction time standard derivation is {predict_std}.")
 
 def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
-    """Trains the same VI mix BNN over n seeds and n_mix_size (with 1 being skiped) and saves them individually.
+    """Trains the same VI mix BNN over n seeds and n_mix_size and saves them individually.
 
     Args:
         base_json (string): The name of the json file whose confifuration we use to define our VI mix BNN and its training data
-        n_mix_size (int): number of mix size steps we want to train, 1 is skiped
+        n_mix_size (int): number of mix size steps we want to train
         n_seed (int): number of seeds we trained
     """
     config = open_VI_mix_json(base_json).copy()
@@ -802,7 +802,7 @@ def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
     for mix_size in range(1, n_mix_size+1):
         for seed in range(1, n_seed+1):
             print("VI mix seed: ", seed)
-            print("VI mix layer size: ", mix_size)
+            print("VI mix size: ", mix_size)
             config["seed"] = seed
             config["mix_size"] = mix_size
             train_VI_mix_from_config_as(config, f"{base_json}_mix_size_{mix_size}_seed_{seed}")
@@ -813,7 +813,7 @@ def review_batch_layer_size_VI_mix(base_json, n_mix_size, n_seed):
 
     Args:
         base_json (string): The name of the json file whose confifuration we used to define our VI mix BNN and its training data
-        n_mix_size (int): number of mix size steps we want to train, 1 is skiped
+        n_mix_size (int): number of mix size steps we want to train
         n_seed (int): number of seeds we trained
     """
 
@@ -823,7 +823,7 @@ def review_batch_layer_size_VI_mix(base_json, n_mix_size, n_seed):
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
 
-    for mix_size in range(2, n_mix_size+1):
+    for mix_size in range(1, n_mix_size+1):
         for seed in range(1, n_seed+1):
             network_data = torch.load(
                 f"Tests/VI_mix/{base_json}_mix_size_{mix_size}_seed_{seed}.pt",
@@ -886,7 +886,7 @@ if __name__ == "__main__":
 
     
     #batch_train_seed_KBNN("Trial_60", 100)
-    batch_train_seed_VI("Trial_60", 100)    # change back
+    #batch_train_seed_VI("Trial_60", 100)
     #batch_train_seed_VI_mix("Trial_60", 100)
     
     #print("KBNN:")
@@ -901,8 +901,8 @@ if __name__ == "__main__":
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
 
-    batch_train_layer_size_VI_mix("Trial_60", 10, 10)   # change back
+    batch_train_layer_size_VI_mix("Trial_60", 10, 10)   # change back TODO
 
-    batch_train_mix_size_VI_mix("Trial_60", 10, 10)
+    batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
