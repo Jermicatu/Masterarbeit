@@ -765,7 +765,7 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
             predict_time[seed - 1] = end - start
             train_time[seed - 1] = network_data["train_time"]
 
-        print(f"Results for {layer_size} layer size:")
+        print(f"Results for layer size {layer_size}:")
 
         RMSE_mean = torch.mean(RMSE_values)
         print(f"RMSE mean is {RMSE_mean}.")
@@ -807,7 +807,7 @@ def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
             config["mix_size"] = mix_size
             train_VI_mix_from_config_as(config, f"{base_json}_mix_size_{mix_size}_seed_{seed}")
 
-def review_batch_layer_size_VI_mix(base_json, n_mix_size, n_seed):
+def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
     """Takes the n trained VI mix BNN and outputs the mean and standard derivation of multiple important metrics.
     Args are the same as in batch_train_mix_size_VI_mix.
 
@@ -901,8 +901,10 @@ if __name__ == "__main__":
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
 
-    batch_train_layer_size_VI_mix("Trial_60", 10, 10)   # change back TODO
+    # batch_train_layer_size_VI_mix("Trial_60", 10, 10)
 
-    batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
+    review_batch_layer_size_VI_mix("Trial_60", 10, 10)
+
+    # batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
