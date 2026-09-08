@@ -316,8 +316,8 @@ def plot_VI_from_pt(filename):
     y_data = y_data.detach().numpy()
 
     plt.plot(x_data, y_data, 'ro', label="data")
-    plt.plot(x_data, y_pred, label="Network output")
-    plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
+    #plt.plot(x_data, y_pred, label="Network output")
+    #plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
     plt.legend()
     plt.xlabel("x")
@@ -897,13 +897,13 @@ if __name__ == "__main__":
     #review_batch_seed_VI_mix("Trial_60", 100)
 
 
-    #plot_VI_from_pt("Trial_60_seed_1")
+    plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
 
     # batch_train_layer_size_VI_mix("Trial_60", 10, 10)
 
-    review_batch_layer_size_VI_mix("Trial_60", 10, 10)
+    # review_batch_layer_size_VI_mix("Trial_60", 10, 10)
 
     # batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
 
