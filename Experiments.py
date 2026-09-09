@@ -799,7 +799,7 @@ def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
     """
     config = open_VI_mix_json(base_json).copy()
 
-    for mix_size in range(1, n_mix_size+1):
+    for mix_size in range(4, n_mix_size+1):
         for seed in range(1, n_seed+1):
             print("VI mix seed: ", seed)
             print("VI mix size: ", mix_size)
@@ -897,7 +897,7 @@ if __name__ == "__main__":
     #review_batch_seed_VI_mix("Trial_60", 100)
 
 
-    plot_VI_from_pt("Trial_60_seed_1")
+    # plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
     #plot_VI_mix_from_pt("Trial_60_seed_1")
 
@@ -905,6 +905,6 @@ if __name__ == "__main__":
 
     # review_batch_layer_size_VI_mix("Trial_60", 10, 10)
 
-    # batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
+    batch_train_mix_size_VI_mix("Trial_60", 5, 10) # TODO
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
