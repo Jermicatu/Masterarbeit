@@ -799,8 +799,8 @@ def batch_train_mix_size_VI_mix(base_json, n_mix_size, n_seed):
     """
     config = open_VI_mix_json(base_json).copy()
 
-    for mix_size in range(4, n_mix_size+1):
-        for seed in range(7, n_seed+1):
+    for mix_size in range(5, n_mix_size+1):
+        for seed in [5, 6, 9, 10]: #in range(1, n_seed+1):
             print("VI mix seed: ", seed)
             print("VI mix size: ", mix_size)
             config["seed"] = seed
