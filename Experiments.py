@@ -872,6 +872,32 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
         predict_std = torch.sqrt(torch.var(predict_time))
         print(f"Prediction time standard derivation is {predict_std}.")
 
+def plot_training_times():
+    mix_sizes = [1, 2, 3, 4, 5]
+    training_times = [
+        352.2075,
+        1202.6908,
+        2582.6025,
+        4424.8027,
+        6759.9521
+    ]
+
+    prediction_times = [
+        0.16620,
+        0.48849,
+        1.00020,
+        1.70184,
+        2.60344
+    ]
+
+    plt.plot(mix_sizes, prediction_times, marker="o")
+
+    plt.xlabel("Mixture size")
+    plt.ylabel("Prediction_times")
+    plt.xticks(mix_sizes)
+
+    plt.show()
+
 
 if __name__ == "__main__":
     print("INITIATE TESTS:")
@@ -905,6 +931,10 @@ if __name__ == "__main__":
 
     # review_batch_layer_size_VI_mix("Trial_60", 10, 10)
 
-    batch_train_mix_size_VI_mix("Trial_60", 5, 10)
+    # batch_train_mix_size_VI_mix("Trial_60", 5, 10)
+
+    # review_batch_mix_size_VI_mix("Trial_60", 5, 10)
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
+
+    plot_training_times()
