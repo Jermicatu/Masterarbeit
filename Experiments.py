@@ -925,14 +925,6 @@ if __name__ == "__main__":
 
     #plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_1")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_2")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_3")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_4")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_5")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_6")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_7")
-
 
     # batch_train_layer_size_VI_mix("Trial_60", 10, 10)
 
@@ -944,4 +936,26 @@ if __name__ == "__main__":
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
 
-    plot_training_times()
+    epochs = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
+
+    training_times = [
+        120.01,
+        239.90,
+        359.92,
+        482.21,
+        601.58,
+        719.87,
+        839.34,
+        959.15,
+        1077.93,
+        1196.40
+    ]
+
+    plt.plot(epochs, training_times, marker="o")
+
+    plt.xlabel("Epochs")
+    plt.ylabel("Training time [s]")
+    plt.xticks(epochs)
+
+    plt.tight_layout()
+    plt.show()
