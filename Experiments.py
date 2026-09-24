@@ -9,8 +9,15 @@ import matplotlib.pyplot as plt
 import time
 import json
 
-
 def test_function(x):
+    """Just a test function cos(2x)
+
+    Args:
+        x (torch.tensor): input values for the test function
+
+    Returns:
+        torch.tensor: output values of the testfunction
+    """
     return torch.cos(2*x)
 
 def generate_data(filename, f, variance, start, end, steps):
