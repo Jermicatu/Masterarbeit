@@ -10,28 +10,6 @@ from torch import relu as relu
 from torch import erf as erf
 from torch import exp as exp
 
-def cubature_approx(f, mean, var):
-	"""	We approximate approximating E(f(a)) and var(f(a))
-
-	Args:
-		f (funcion): function f(x)
-		mean (torch.tensor): one dimensional torch vector of form [mu_1, ..., mu_d]
-		var (torch.tensor): one dimensional torch vector of form [sigma_1^2, ..., sigma_d^2]
-
-	Returns:
-		torch.tensor, torch.tensor: approximation E(f(a)) and E(f^2(a)) - E(f(a))^2
-	"""
-	
-	assert var.size() == mean.size(), f"Shape mismatch between var and mean"
-
-	mean_sol = f(torch.sqrt(var) + mean) + f(-torch.sqrt(var) + mean)
-	mean_sol = mean_sol/math.sqrt(math.pi)
-
-	var_sol = f(torch.sqrt(var) + mean)**2 + f(-torch.sqrt(var) + mean)**2
-	var_sol = var_sol/math.sqrt(math.pi) - mean_sol**2
-
-	return mean_sol, var_sol
-
 class Network_Class:
 	def __init__(self, input_size, dimensions, functions, starting_variance = 1):
 		"""Saves a network where each layer saves the weights and the variance matrix as a batch plus saviang the activation function.
@@ -152,10 +130,6 @@ class Network_Class:
 				m_z_new = m_a * probit + p_a
 				s_z_new = torch.maximum((torch.pow(m_a, 2) + s_a) * probit + m_a * p_a - m_z_new ** 2 + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
 
-			# simple cubature approx
-			#m_z_new, s_z_new = cubature_approx(f, m_a, s_a)
-			#s_z_new = torch.maximum(s_z_new + torch.ones(dimensions[i], dtype=torch.float32) * self.noise, torch.ones(dimensions[i], dtype=torch.float32) * self.noise)
-			
 			m_z_old = torch.cat((m_z_new, torch.tensor([1], dtype=torch.float32)), 0)
 			s_z_old = torch.block_diag(torch.diag(s_z_new), torch.tensor([[0]], dtype=torch.float32))
 
