@@ -3,12 +3,18 @@ import math
 from . import LayerMomentApprox
 from torch.func import vmap
 
-def id(x):
-    return x
-
 class myMixBNN:
-    # featuring Variational interference
     def __init__(self, dimensions, functions, mix_size, starting_variance = 5, data_variance = 1):
+        """ initialize network, in particular we save the means m varinces s and mixture weights w of all network weights in 
+        lists of size L with each entry a torch.tensor of dimenstions (dimensions[l + 1], dimensions[l] + 1, mix_size)
+
+        Args:
+            dimensions (list): contains the sizes of all dimensions of the network
+            functions (list): contains all acgtivation functions of the network
+            mix_size (int): size of all Gaussian mixtures
+            starting_variance (float, optional): starting variance for the network weights. Defaults to 5.
+            data_variance (float, optional): assumed variance for the training data. Defaults to 1.
+        """
         self.dimensions = dimensions
         self.functions = functions
         self.mix_size = mix_size
@@ -23,7 +29,20 @@ class myMixBNN:
         self.w = [torch.ones(dimensions[l + 1], dimensions[l] + 1, mix_size) / mix_size for l in range(L)]
 
     def forwardPass_vectorized(self, m_q, s_q, w_q, x_data, y_data):
-        # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
+        """ Calculates the expected log probability of the data under given weights with mean m_q and var s_q and weights w_q.
+        The different naming sceme is a reference to ELBO formula where we have tow distributions p and q for the weights.
+
+        Args:
+            m_q (list): means of the network weights
+            s_q (list): variance of the network weights
+            w_q (list): mixture weights of the network weights
+            x_data (torch.tensor): x values of the training data
+            y_data (torch.tensor): y values of the training data
+
+        Returns:
+            float: the expected log probability needed for the ELBO
+        """
+        
         dimensions = self.dimensions
         functions = self.functions
         mix_size = self.mix_size
@@ -50,7 +69,19 @@ class myMixBNN:
         return sol.sum()
 
     def forwardPass(self, m_q, s_q, w_q, x_data, y_data):
-        # Calculates the expected log probability of the data under given weights with mean m_q and var s_q
+        """ Calculates the expected log probability of the data under given weights with mean m_q and var s_q and weights w_q.
+        The different naming sceme is a reference to ELBO formula where we have tow distributions p and q for the weights.
+
+        Args:
+            m_q (list): means of the network weights
+            s_q (list): variance of the network weights
+            w_q (list): mixture weights of the network weights
+            x_data (torch.tensor): x values of the training data
+            y_data (torch.tensor): y values of the training data
+
+        Returns:
+            float: the expected log probability needed for the ELBO
+        """
         dimensions = self.dimensions
         functions = self.functions
         mix_size = self.mix_size
@@ -79,6 +110,19 @@ class myMixBNN:
         return sol.sum()
 
     def ELBO(self, m_q, s_q, w_q, x_data, y_data, kl_weight=1.0):
+        """ Calculates the ELBO between the current p and new q distributions for given training data
+
+        Args:
+            m_q (list): means of the network weights
+            s_q (list): variance of the network weights
+            w_q (list): mixture weights of the network weights
+            x_data (torch.tensor): x values of the training data
+            y_data (torch.tensor): y values of the training data
+            kl_weight (float, optional): _description_. Defaults to 1.0.
+
+        Returns:
+            float: the ELBO of all the network weights in the network between the current p and new q distributions
+        """
         # Calculates the ELBO of all our weights in the network between the current p and new q distributions
         L = len(self.dimensions) - 1
         m_p = self.m
@@ -101,11 +145,18 @@ class myMixBNN:
         for mq,sq,wq,mp,sp,wp in zip(flat_mq, flat_sq, flat_wq, flat_mp, flat_sp, flat_wp):
             kl += wp * (torch.log(wp) - 0.5 * torch.log(2 * math.pi * sp) - ((mq-mp)**2 + sq) / (2 * sp)) 
             kl += wq * (torch.log(wq) - 0.5 * torch.log(2 * math.pi * sq) - 0.5)
-        #print("likelyhood: ", my_ELBO)
-        #print("KL: ", kl)
+
         return my_ELBO + kl_weight*kl
     
     def train(self, x_data, y_data, epochs=500, lr=0.01):
+        """training algorithm for the VI mix BNN using gradient ascent over the ELBO
+
+        Args:
+            x_data (torch.tensor): x values of the training data
+            y_data (torch.tensor): y values of the training data
+            epochs (int, optional): Number of training epochs. Defaults to 500.
+            lr (float, optional): Learning rate for the gradient ascent. Defaults to 0.01.
+        """
         m_q = [m.clone().detach().requires_grad_(True) for m in self.m]
         log_s_q = [torch.log(s.clone().detach() / 10).requires_grad_(True) for s in self.s]  # variance is always a tenth of that of s_p
         logit_w_q = [torch.zeros_like(w).requires_grad_(True) for w in self.w]
@@ -123,14 +174,19 @@ class myMixBNN:
             loss.backward()
             optimizer.step()
 
-            #if epoch % 1 == 0:
-            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
-
         self.m = [m.detach().clone() for m in m_q]
         self.s = [torch.exp(ls).detach().clone() for ls in log_s_q]
         self.w = [w.detach().clone() for w in w_q]
 
     def predict(self, x_data):
+        """TODO
+
+        Args:
+            x_data (torch.tensor): _description_
+
+        Returns:
+            torch.tensor, torch.tensor: _description_
+        """
         dimensions = self.dimensions
         functions = self.functions
         mix_size = self.mix_size
@@ -146,13 +202,12 @@ class myMixBNN:
         output_var = torch.zeros(data_size, dimensions[-1])
 
         for i in range(x_data.size(0)):
-            x = x_data[i] # TODO: adjust example
+            x = x_data[i]
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)
             for l in range(L):
-                # either calculate m, s and w or just 3*mix_size - 1 moments
                 a_l_moments = LayerMomentApprox.activation_input_approx_vectorized(z_l_moments, m_p[l], s_p[l], mix_w_p[l]) 
                 z_l_moments = LayerMomentApprox.activation_output_approx_vectorized(a_l_moments, functions[l])
 
