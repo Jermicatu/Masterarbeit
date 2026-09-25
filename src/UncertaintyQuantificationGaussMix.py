@@ -179,13 +179,13 @@ class myMixBNN:
         self.w = [w.detach().clone() for w in w_q]
 
     def predict(self, x_data):
-        """TODO
+        """Caculates the output mean and variance for a given dataset
 
         Args:
-            x_data (torch.tensor): _description_
+            x_data (torch.tensor): x values for which we want the output mean and variance
 
         Returns:
-            torch.tensor, torch.tensor: _description_
+            torch.tensor, torch.tensor: network output mean and variance
         """
         dimensions = self.dimensions
         functions = self.functions
