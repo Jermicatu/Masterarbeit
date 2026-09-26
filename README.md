@@ -1,21 +1,23 @@
-This code was created as part of the MAster Thesis of Julius dos Santos
-ith the title "".
+This code was created as part of the Master Thesis of Julius Alexander dos Santos Costa with the title "Uncertainty quantification of Bayesian Neural Networks".
 
-This code does ...
+This code includes three different BNNs:
+- KBNN
+- VI BNN 
+- VI mix BNN
+Each implementation contains training and prediction functions. 
+It is recomended to use Experiments.py in Visual Studio Code to run tests on the different BNNs.
 
 
-The code is structured ... and can be executed by using command python -m main.py ""
+Installation:
 
-Tests can be 
+This project Python and a virtual enviroment. To install the required dependencies, run:
+pip install -r requirements.txt
 
-python package parser --> default arguments reinmachen z.B. standard auf true
+Project Structure:
 
--n 5 --option -test_case "Bilderbuch"
-
-if__name__=="main":
-    args = arg.parser()
-    args.argument("n",...)
-    
-
- del a Costa del a Portuguesa del a besta frienda of Nataliaa anda Andreasa. 
-
+- src: constains the source code, in particular the three BNNs
+- Tests: contains the already trained networks
+- Test_data: contains various sets of already defined training data
+- Experiments.py: Here we test the BNNs
+- requirements.txt: stores the Python dependancies
+- README.md
