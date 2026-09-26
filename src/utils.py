@@ -1,6 +1,14 @@
 import torch
 
 def id(x):
+    """identity function
+
+    Args:
+        x (torch.tensor): input values
+
+    Returns:
+        torch.tensor: output values (equal to input)
+    """
     return x
 
 def RMSE(y_data, y_approx):
