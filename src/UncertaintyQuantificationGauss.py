@@ -1,9 +1,6 @@
 import torch
 import math
 
-def id(x):
-    return x
-
 class VI_BNN:
     def __init__(self, dimensions, functions, starting_variance = 5, data_variance = 1):
         """Initialize the VI BNN
@@ -141,9 +138,6 @@ class VI_BNN:
             loss = -self.ELBO(m_q, s_q, x_data, y_data, kl_weight)
             loss.backward()
             optimizer.step()
-
-            #if epoch % 50 == 0:
-            #    print(f"Epoch {epoch}: ELBO = {-loss.item():.2f}")
 
         # set the mean and variance to the new values
         self.m = [m.detach().clone() for m in m_q]

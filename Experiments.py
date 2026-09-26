@@ -2,7 +2,6 @@ import src.KBNN_Class_MAIN as KBNN
 import src.UncertaintyQuantificationGauss as VI
 import src.UncertaintyQuantificationGaussMix as VI_mix
 import src.utils as utils
-from src.utils import id
 import random
 import torch
 import matplotlib.pyplot as plt
@@ -167,7 +166,6 @@ def train_VI_from_config_as(config, filename):
     functions = [utils.FUNCTIONS[func] for func in config["functions"]]
     seed = config["seed"]
     epochs = config["epochs"]
-    # learning_rate = config["learning_rate"]
 
     data = torch.load(f"Test_data/{config["data_file"]}")
     x_data = data["x_data"]
@@ -211,8 +209,6 @@ def plot_VI_from_pt(filename):
     y_data = y_data.detach().numpy()
 
     plt.plot(x_data, y_data, 'ro', label="data")
-    #plt.plot(x_data, y_pred, label="Network output")
-    #plt.fill_between(x_data, y_pred - 2*y_s, y_pred + 2*y_s, alpha=0.5)
 
     plt.legend()
     plt.xlabel("x")
@@ -312,7 +308,6 @@ def review_batch_seed_KBNN(base_json, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -341,15 +336,12 @@ def review_batch_seed_KBNN(base_json, n_seed):
         y_data = y_data.squeeze().detach()
 
         RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
-        # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
         NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
         predict_time[seed - 1] = end - start
         train_time[seed - 1] = network_data["train_time"]
 
     RMSE_mean = torch.mean(RMSE_values)
     print(f"RMSE mean is {RMSE_mean}.")
-    # MAE_mean = torch.mean(MAE_values)
-    # print(f"MAE mean is {MAE_mean}.")
     NLL_mean = torch.mean(NLL_values)
     print(f"NLL mean is {NLL_mean}.")
     train_mean = torch.mean(train_time)
@@ -359,8 +351,6 @@ def review_batch_seed_KBNN(base_json, n_seed):
 
     RMSE_std = torch.sqrt(torch.var(RMSE_values))
     print(f"RMSE standard derivation is {RMSE_std}.")
-    # MAE_std = torch.sqrt(torch.var(MAE_values))
-    # print(f"MAE standard derivation is {MAE_std}.")
     NLL_std = torch.sqrt(torch.var(NLL_values))
     print(f"NLL standard derivation is {NLL_std}.")
     train_std = torch.sqrt(torch.var(train_time))
@@ -392,7 +382,6 @@ def review_batch_seed_VI(base_json, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -423,8 +412,6 @@ def review_batch_seed_VI(base_json, n_seed):
 
     RMSE_mean = torch.mean(RMSE_values)
     print(f"RMSE mean is {RMSE_mean}.")
-    # MAE_mean = torch.mean(MAE_values)
-    # print(f"MAE mean is {MAE_mean}.")
     NLL_mean = torch.mean(NLL_values)
     print(f"NLL mean is {NLL_mean}.")
     train_mean = torch.mean(train_time)
@@ -434,8 +421,6 @@ def review_batch_seed_VI(base_json, n_seed):
 
     RMSE_std = torch.sqrt(torch.var(RMSE_values))
     print(f"RMSE standard derivation is {RMSE_std}.")
-    # MAE_std = torch.sqrt(torch.var(MAE_values))
-    # print(f"MAE standard derivation is {MAE_std}.")
     NLL_std = torch.sqrt(torch.var(NLL_values))
     print(f"NLL standard derivation is {NLL_std}.")
     train_std = torch.sqrt(torch.var(train_time))
@@ -467,7 +452,6 @@ def review_batch_seed_VI_mix(base_json, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -491,15 +475,12 @@ def review_batch_seed_VI_mix(base_json, n_seed):
         y_data = y_data.squeeze().detach()
 
         RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
-        # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
         NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
         predict_time[seed - 1] = end - start
         train_time[seed - 1] = network_data["train_time"]
 
     RMSE_mean = torch.mean(RMSE_values)
     print(f"RMSE mean is {RMSE_mean}.")
-    # MAE_mean = torch.mean(MAE_values)
-    # print(f"MAE mean is {MAE_mean}.")
     NLL_mean = torch.mean(NLL_values)
     print(f"NLL mean is {NLL_mean}.")
     train_mean = torch.mean(train_time)
@@ -509,8 +490,6 @@ def review_batch_seed_VI_mix(base_json, n_seed):
 
     RMSE_std = torch.sqrt(torch.var(RMSE_values))
     print(f"RMSE standard derivation is {RMSE_std}.")
-    # MAE_std = torch.sqrt(torch.var(MAE_values))
-    # print(f"MAE standard derivation is {MAE_std}.")
     NLL_std = torch.sqrt(torch.var(NLL_values))
     print(f"NLL standard derivation is {NLL_std}.")
     train_std = torch.sqrt(torch.var(train_time))
@@ -547,7 +526,6 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -572,7 +550,6 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
             y_data = y_data.squeeze().detach()
 
             RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
-            # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
             NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
             predict_time[seed - 1] = end - start
             train_time[seed - 1] = network_data["train_time"]
@@ -581,8 +558,6 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
 
         RMSE_mean = torch.mean(RMSE_values)
         print(f"RMSE mean is {RMSE_mean}.")
-        # MAE_mean = torch.mean(MAE_values)
-        # print(f"MAE mean is {MAE_mean}.")
         NLL_mean = torch.mean(NLL_values)
         print(f"NLL mean is {NLL_mean}.")
         train_mean = torch.mean(train_time)
@@ -592,8 +567,6 @@ def review_batch_epoch_VI_mix(base_json, n_epochs, n_seed):
 
         RMSE_std = torch.sqrt(torch.var(RMSE_values))
         print(f"RMSE standard derivation is {RMSE_std}.")
-        # MAE_std = torch.sqrt(torch.var(MAE_values))
-        # print(f"MAE standard derivation is {MAE_std}.")
         NLL_std = torch.sqrt(torch.var(NLL_values))
         print(f"NLL standard derivation is {NLL_std}.")
         train_std = torch.sqrt(torch.var(train_time))
@@ -630,7 +603,6 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -655,7 +627,6 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
             y_data = y_data.squeeze().detach()
 
             RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
-            # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
             NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
             predict_time[seed - 1] = end - start
             train_time[seed - 1] = network_data["train_time"]
@@ -664,8 +635,6 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
 
         RMSE_mean = torch.mean(RMSE_values)
         print(f"RMSE mean is {RMSE_mean}.")
-        # MAE_mean = torch.mean(MAE_values)
-        # print(f"MAE mean is {MAE_mean}.")
         NLL_mean = torch.mean(NLL_values)
         print(f"NLL mean is {NLL_mean}.")
         train_mean = torch.mean(train_time)
@@ -675,8 +644,6 @@ def review_batch_layer_size_VI_mix(base_json, n_layer_size, n_seed):
 
         RMSE_std = torch.sqrt(torch.var(RMSE_values))
         print(f"RMSE standard derivation is {RMSE_std}.")
-        # MAE_std = torch.sqrt(torch.var(MAE_values))
-        # print(f"MAE standard derivation is {MAE_std}.")
         NLL_std = torch.sqrt(torch.var(NLL_values))
         print(f"NLL standard derivation is {NLL_std}.")
         train_std = torch.sqrt(torch.var(train_time))
@@ -713,7 +680,6 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
     """
 
     RMSE_values = torch.zeros(n_seed)
-    # MAE_values = torch.zeros(n_seed)
     NLL_values = torch.zeros(n_seed)
     predict_time = torch.zeros(n_seed)
     train_time = torch.zeros(n_seed)
@@ -738,7 +704,6 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
             y_data = y_data.squeeze().detach()
 
             RMSE_values[seed - 1] = utils.RMSE(y_data, y_pred)
-            # MAE_values[seed - 1] = utils.MAE(y_data, y_pred)
             NLL_values[seed - 1] = utils.NLL(y_data, y_pred, y_s)
             predict_time[seed - 1] = end - start
             train_time[seed - 1] = network_data["train_time"]
@@ -747,8 +712,6 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
 
         RMSE_mean = torch.mean(RMSE_values)
         print(f"RMSE mean is {RMSE_mean}.")
-        # MAE_mean = torch.mean(MAE_values)
-        # print(f"MAE mean is {MAE_mean}.")
         NLL_mean = torch.mean(NLL_values)
         print(f"NLL mean is {NLL_mean}.")
         train_mean = torch.mean(train_time)
@@ -758,8 +721,6 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
 
         RMSE_std = torch.sqrt(torch.var(RMSE_values))
         print(f"RMSE standard derivation is {RMSE_std}.")
-        # MAE_std = torch.sqrt(torch.var(MAE_values))
-        # print(f"MAE standard derivation is {MAE_std}.")
         NLL_std = torch.sqrt(torch.var(NLL_values))
         print(f"NLL standard derivation is {NLL_std}.")
         train_std = torch.sqrt(torch.var(train_time))
@@ -767,41 +728,14 @@ def review_batch_mix_size_VI_mix(base_json, n_mix_size, n_seed):
         predict_std = torch.sqrt(torch.var(predict_time))
         print(f"Prediction time standard derivation is {predict_std}.")
 
-def plot_training_times():
-    mix_sizes = [1, 2, 3, 4, 5]
-    training_times = [
-        352.2075,
-        1202.6908,
-        2582.6025,
-        4424.8027,
-        6759.9521
-    ]
-
-    prediction_times = [
-        0.16620,
-        0.48849,
-        1.00020,
-        1.70184,
-        2.60344
-    ]
-
-    plt.plot(mix_sizes, prediction_times, marker="o")
-
-    plt.xlabel("Mixture size")
-    plt.ylabel("Prediction_times")
-    plt.xticks(mix_sizes)
-
-    plt.show()
-
-
 if __name__ == "__main__":
     print("INITIATE TESTS:")
 
     #generate_data("Cos_2x_data_60", test_function, 0, -3, 3, 60)
 
     
-    # batch_train_VI_mix("Trial_60_cos_2x", 1)
-    # plot_VI_mix_from_pt("Trial_60_cos_2x_seed_1")
+    #batch_train_seed_VI_mix("Trial_60_cos_2x", 1)
+    #plot_VI_mix_from_pt("Trial_60_cos_2x_seed_1")
 
     #review_batch_seed_VI_mix("Trial_60_cos_2x", 1)
 
@@ -810,47 +744,23 @@ if __name__ == "__main__":
     #batch_train_seed_VI("Trial_60", 100)
     #batch_train_seed_VI_mix("Trial_60", 100)
     
-    #print("KBNN:")
-    #review_batch_seed_KBNN("Trial_60", 100)
-    #print("VI:")
-    #review_batch_seed_VI("Trial_60", 100)
-    #print("VI mix:")
-    #review_batch_seed_VI_mix("Trial_60", 100)
+    print("KBNN:")
+    review_batch_seed_KBNN("Trial_60", 100)
+    print("VI:")
+    review_batch_seed_VI("Trial_60", 100)
+    print("VI mix:")
+    review_batch_seed_VI_mix("Trial_60", 100)
 
 
     #plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
 
-    # batch_train_layer_size_VI_mix("Trial_60", 10, 10)
+    #batch_train_layer_size_VI_mix("Trial_60", 10, 10)
 
-    # review_batch_layer_size_VI_mix("Trial_60", 10, 10)
+    #review_batch_layer_size_VI_mix("Trial_60", 10, 10)
 
-    # batch_train_mix_size_VI_mix("Trial_60", 5, 10)
+    #batch_train_mix_size_VI_mix("Trial_60", 5, 10)
 
-    # review_batch_mix_size_VI_mix("Trial_60", 5, 10)
+    #review_batch_mix_size_VI_mix("Trial_60", 5, 10)
 
     #review_batch_epoch_VI_mix("Trial_60", 10, 10)
-
-    epochs = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
-
-    training_times = [
-        120.01,
-        239.90,
-        359.92,
-        482.21,
-        601.58,
-        719.87,
-        839.34,
-        959.15,
-        1077.93,
-        1196.40
-    ]
-
-    plt.plot(epochs, training_times, marker="o")
-
-    plt.xlabel("Epochs")
-    plt.ylabel("Training time [s]")
-    plt.xticks(epochs)
-
-    plt.tight_layout()
-    plt.show()

@@ -1,6 +1,4 @@
 import torch
-import math
-from .utils import id
 
 from torch import tanh as tanh
 from torch import cos as cos

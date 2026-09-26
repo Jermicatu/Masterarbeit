@@ -58,6 +58,7 @@ class Network_Class:
 		for i in range(0, len(dimensions)):
 			f = network[i][2]
 			x = f(torch.flatten(torch.matmul(torch.cat((x, torch.ones(1)), 0), network[i][0])))
+
 		return x
 
 	def staticOutput(self, x):
@@ -154,7 +155,6 @@ class Network_Class:
 		indices = list(range(len(x_data)))
 		random.shuffle(indices)
 		for j in indices:
-		#for j in range(0, len(x_data)):
 			x = x_data[j].unsqueeze(0)
 			y = y_data[j].unsqueeze(0)
 
@@ -229,8 +229,5 @@ class Network_Class:
 				G = L_low ** 2 * Da.unsqueeze(0).repeat(w_count, 1)
 				
 				s_z_plus = s_z_minus_prev + G[:-1] @ torch.ones((perc_count), dtype=torch.float32)
-
-				
-				
 
 		self.network = network

@@ -31,6 +31,7 @@ class myMixBNN:
     def forwardPass_vectorized(self, m_q, s_q, w_q, x_data, y_data):
         """ Calculates the expected log probability of the data under given weights with mean m_q and var s_q and weights w_q.
         The different naming sceme is a reference to ELBO formula where we have tow distributions p and q for the weights.
+        This function is currently not used as it is not tested. However I will leave it in just in case someone wants to use it or expand on it.
 
         Args:
             m_q (list): means of the network weights
@@ -53,7 +54,6 @@ class myMixBNN:
 
         def singlePass(x, y, m_q, s_q, w_q):
             m_z_start = x.unsqueeze(-1).expand(-1, mix_size)
-            # print(m_z_start.size())
             s_z_start = torch.zeros_like(m_z_start)
             w_z_start = torch.ones_like(m_z_start) / mix_size
             z_l_moments = LayerMomentApprox.MixToMoments(m_z_start, s_z_start, w_z_start)

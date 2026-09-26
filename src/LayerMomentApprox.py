@@ -2,6 +2,17 @@ import torch
 import math
 
 def activation_input_approx_vectorized(z_moments, m, s, mix_w):
+    """ Calculate the moments of the activation input.
+
+    Args:
+        z_moments (torch.tensor): moments of the previous layer output
+        m (torch.tensor): means of the network weights in the current layer
+        s (torch.tensor): variance of the network weights in the current layer
+        mix_w (torch.tensor): mixture weights of the network weights in the current layer
+
+    Returns:
+        torch.tensor: moments of the activation input a
+    """
     w_moments = MixToMoments(m, s, mix_w)
             
     # at this point z_moments size should be: z_size, max_moment
@@ -24,10 +35,61 @@ def activation_input_approx_vectorized(z_moments, m, s, mix_w):
 
     return new_cumulative
 
-# new functions for UncertaintyQuantificationGaussMix
+def activation_output_approx_vectorized(a_moments, f):
+    m = a_moments[:, 1]
+    s = torch.clamp(a_moments[:, 2] - m**2, min=1e-6)
+    z_size = a_moments.size(0)
+    max_moments = a_moments.size(1)
 
-def activation_input_approx(z_moments, m, s, mix_w):
-    # should work (aka. tested it)
+    z_moments = torch.ones(z_size, max_moments)
+
+    f_plus = f(m + torch.sqrt(s + 1e-8))
+    f_minus = f(m - torch.sqrt(s + 1e-8))
+
+    k = torch.arange(1, max_moments, dtype=f_plus.dtype, device=f_plus.device)
+    z_moments[:, 1:] = (f_plus.unsqueeze(1) ** k.unsqueeze(0) + f_minus.unsqueeze(1) ** k.unsqueeze(0)) / 2
+
+    return z_moments
+
+def MixToMoments(m, s, mix_w):
+    """ Calculates the 3K-1 moments for the mixtures given by m, s, mix_w
+
+    Args:
+        m (torch.tensor): means of the network weights in the current layer
+        s (torch.tensor): variance of the network weights in the current layer
+        mix_w (torch.tensor): mixture weights of the network weights in the current layer
+
+    Returns:
+        torch.tensor: 3K-1 moments of the given mixtures
+    """
+    
+    # m, s and mix_w are all tensors of the same size: dim1, dim2 , mix_size OR dim1 mix_size
+    batch_shape = m.shape[:-1]
+    mix_size = m.size(-1)
+    max_moment = 3 * mix_size
+
+    moments = torch.ones(batch_shape + (1,))
+
+    m1 = (mix_w * m).sum(dim=-1, keepdim=True)      # [..., 1]
+    moments = torch.cat([moments, m1], dim=-1)      # [..., 2]
+    
+    mu_2 = m**2 + s
+    m2 = (mix_w * mu_2).sum(dim=-1, keepdim=True)   # [..., 1]
+    moments = torch.cat([moments, m2], dim=-1)      # [..., 3]
+    
+    # prepare variables for the loop
+    mu_km2, mu_km1 = m, mu_2
+    
+    for k in range(3, max_moment):
+        mu_next = m * mu_km1 + (k-1) * s * mu_km2     # [..., 1]
+        mk = (mix_w * mu_next).sum(dim=-1, keepdim=True)  # [..., 1]
+        moments = torch.cat([moments, mk], dim=-1)  # [..., k+1]
+        mu_km2, mu_km1 = mu_km1, mu_next
+        
+    return moments
+
+"""
+def activation_input_approx(z_moments, m, s, mix_w):    
     w_moments = MixToMoments(m, s, mix_w)
         
     # at this point z_l_moments size should be: z_size, max_moment
@@ -60,22 +122,6 @@ def activation_input_approx(z_moments, m, s, mix_w):
         a_moments[j,:] = cumulative
 
     return a_moments
-
-def activation_output_approx_vectorized(a_moments, f):
-    m = a_moments[:, 1]
-    s = torch.clamp(a_moments[:, 2] - m**2, min=1e-6)
-    z_size = a_moments.size(0)
-    max_moments = a_moments.size(1)
-
-    z_moments = torch.ones(z_size, max_moments)
-
-    f_plus = f(m + torch.sqrt(s + 1e-8))
-    f_minus = f(m - torch.sqrt(s + 1e-8))
-
-    k = torch.arange(1, max_moments, dtype=f_plus.dtype, device=f_plus.device)
-    z_moments[:, 1:] = (f_plus.unsqueeze(1) ** k.unsqueeze(0) + f_minus.unsqueeze(1) ** k.unsqueeze(0)) / 2
-
-    return z_moments
 
 def activation_output_approx(a_moments, f):
     m = a_moments[:, 1]
@@ -113,43 +159,13 @@ def activation_output_approx_mix(a_moments, f):
 
     return z_moments
 
-# functions needed for the calculations
-
-def MixToMoments(m, s, mix_w):
-    # should work (aka. tested it)
-    # m, s and mix_w are all tensors of the same size: dim1, dim2 , mix_size OR dim1 mix_size
-    batch_shape = m.shape[:-1]
-    mix_size = m.size(-1)
-    max_moment = 3 * mix_size
-
-    moments = torch.ones(batch_shape + (1,))
-
-    m1 = (mix_w * m).sum(dim=-1, keepdim=True)      # [..., 1]
-    moments = torch.cat([moments, m1], dim=-1)      # [..., 2]
-    
-    mu_2 = m**2 + s
-    m2 = (mix_w * mu_2).sum(dim=-1, keepdim=True)   # [..., 1]
-    moments = torch.cat([moments, m2], dim=-1)      # [..., 3]
-    
-    # Recurrence state
-    mu_km2, mu_km1 = m, mu_2
-    
-    for k in range(3, max_moment):
-        mu_next = m * mu_km1 + (k-1) * s * mu_km2     # [..., 1]
-        mk = (mix_w * mu_next).sum(dim=-1, keepdim=True)  # [..., 1]
-        moments = torch.cat([moments, mk], dim=-1)  # [..., k+1]
-        mu_km2, mu_km1 = mu_km1, mu_next
-        
-    return moments
-
 def unpack_theta_torch(theta, n):
-    """
-    Unpack theta into physical parameters.
+    # Unpack theta into physical parameters.
 
-    Returns
-    -------
-    mu, v, w : each torch.Tensor, shape (dim1, n)
-    """
+    # Returns
+    # -------
+    # mu, v, w : each torch.Tensor, shape (dim1, n)
+
     z = theta[:,:n-1]
     mu = theta[:,n-1:2*n-1]
     l = theta[:,2*n-1:3*n-1]
@@ -188,3 +204,4 @@ def MomentsToMix(a_moments):
     # They all should be of shape (a_size, mix_size)
     return m_opt, s_opt, w_opt
 
+"""
