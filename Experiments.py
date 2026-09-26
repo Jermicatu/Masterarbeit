@@ -925,14 +925,8 @@ if __name__ == "__main__":
 
     #plot_VI_from_pt("Trial_60_seed_1")
     #plot_KBNN_from_pt("Trial_60_seed_1")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_1")
     plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_2")
     plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_3")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_4")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_5")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_6")
-    plot_VI_mix_from_pt("Trial_60_layer_size_4_seed_7")
-
 
     # batch_train_layer_size_VI_mix("Trial_60", 10, 10)
 
